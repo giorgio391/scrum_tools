@@ -1,0 +1,55 @@
+<audio #horn_audio src="horn.mp3"></audio>
+<audio #alert_audio src="alert2.mp3" loop></audio>
+<audio #beep_audio src="beep.mp3"></audio>
+<div class="main">
+    <div class="pending">
+        <div class="title">Pending</div>
+        <ul>
+            <li *ngFor="let item of pending">
+                <button title="Remove this item from the list." class="remove" (click)="remove(item)">
+                    <i class="fa fa-close" aria-hidden="true"></i>
+                    <i class="btn-text">Remove</i>
+                </button>
+                <div class="text name">{{item.name}}</div><div class="text duration" *ngIf="item.duration != null">{{item.duration | stopwatch}}</div>
+                <button title="Promote this item to the top." class="promote" *ngIf="item != pending[0]"
+                        (click)="promote(item)">
+                    <i class="fa fa-step-forward fa-rotate-270" aria-hidden="true"></i>
+                    <i class="btn-text">Promote</i>
+                </button>
+            </li>
+        </ul>
+        <button title="Shuffle the list." class="shuffle" *ngIf="pending.length > 1" (click)="shuffle()">
+            <i class="fa fa-random" aria-hidden="true"></i>
+            <i class="btn-text">Shuffle</i>
+        </button>
+        <simple-editor [placeHolder]="'Add name ...'" (commitValue)="addName($event)"></simple-editor>
+    </div>
+    <div class="stopwatch">
+        <stop-watch
+                [targetUnitDuration]="120"
+                [beepAudio]="beep_audio"
+                [hornAudio]="horn_audio"
+                [hornThreshold]="1300"
+                [alertAudio]="alert_audio"
+                [alertThreshold]="10000"
+                [startOffsetProvider]="startOffset"
+                (resetAction)="onReset()"
+                (beforeNext)="onNext($event)"
+                (startAction)="onNext($event)"
+        >
+        </stop-watch>
+        <div class="current" *ngIf="current != null">{{current.name}}</div>
+    </div>
+    <div class="done">
+        <div class="title">Done</div>
+        <ul>
+            <li *ngFor="let item of done">
+                <div class="text name">{{item.name}}</div><div class="text duration">{{item.duration | stopwatch}}</div>
+                <button title="Restore this item to be replayed." class="replay" (click)="doReplay(item)">
+                    <i class="fa fa-mail-reply" aria-hidden="true"></i>
+                    <i class="btn-text">Remove</i>
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>

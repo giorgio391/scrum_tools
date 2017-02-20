@@ -1,0 +1,170 @@
+.stopwatch.initialized {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-flow: column;
+    flex-flow: column;
+}
+
+.aux {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-flow: row;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
+
+.totals {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-flow: row;
+    flex-flow: row;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 2px 1px 6px rgba(2, 2, 2, 0.5);
+}
+
+.totals label {
+    color: #c3c3c3;
+    text-shadow: none;
+}
+
+.main {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-flow: row;
+    flex-flow: row;
+    align-items: stretch;
+}
+.net {
+    font-size: 3vw;
+    width: 50%;
+    text-align: center;
+}
+
+.gross {
+    font-size: 3vw;
+    width: 50%;
+    text-align: center;
+}
+
+.main {
+    box-shadow: 5px 5px 30px -7px rgba(0, 0, 0, 0.75);
+    margin-bottom: 20px;
+}
+
+.current {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 11vw;
+    width: 78%;
+    text-align: center;
+    color: #c3c3c3;
+    text-shadow: 5px 5px 13px rgba(2, 2, 2, 0.5);
+}
+
+.toggle-pause {
+    width: 22%;
+    text-align: center;
+    margin: auto;
+}
+
+.toggle-pause button {
+    color: #c3c3c3;
+    font-size: 10vw;
+    background-color: transparent;
+    vertical-align: middle;
+}
+
+.toggle-pause button:hover {
+    text-shadow: 5px 5px 13px rgba(2, 2, 2, 0.5);
+}
+
+.toggle-pause button:active {
+    text-shadow: none;
+}
+
+.stopwatch.initialized button {
+    cursor: pointer;
+    border: 0px solid;
+}
+
+.stopwatch.initialized button:focus {
+    outline: 0;
+}
+
+.stopwatch.initialized button::-moz-focus-inner {
+    border: 0;
+}
+
+.stopwatch.initialized .aux button {
+    color: #828282;
+    background-color: #ffffff;
+    box-shadow: 5px 5px 10px 1px rgba(0, 0, 0, 0.50);
+}
+
+.stopwatch.initialized .aux button:hover {
+    box-shadow: 6px 6px 10px 2px rgba(0, 0, 0, 0.50);
+    margin: -1px 8px 1px -1px;
+}
+
+.stopwatch.initialized .aux button:active {
+    box-shadow: 5px 5px 5px 1px rgba(0, 0, 0, 0.50);
+    margin: 0px 7px 0px 0px;
+}
+
+.stopwatch.initialized button .btn-text {
+    display: none;
+}
+
+.aux button {
+    font-size: 15px;
+    border-radius: 28px;
+    -moz-border-radius: 28px;
+    margin-right: 7px;
+    height: 28px;
+    width: 28px;
+}
+
+.aux .start button {
+    font-size: 22px;
+    padding-left: 5px;
+}
+
+.aux .stop button {
+    font-size: 22px;
+    padding-left: 4px;
+}
+
+.aux .next button {
+    font-size: 14px;
+}
+
+.aux .reset-current button {
+    font-size: 14px;
+}
+
+.orange-background {
+    background: linear-gradient(to bottom, #F08F00, #ffc800);
+    background: -moz-linear-gradient(to bottom, #F08F00, #ffc800);
+}
+
+.red-background {
+    background: linear-gradient(to bottom, #C00000, #FF0000);
+    background: -moz-linear-gradient(to bottom, #C00000, #FF0000);
+}

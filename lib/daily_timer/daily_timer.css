@@ -1,0 +1,123 @@
+div.main {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+}
+
+div.current {
+    width: 100%;
+    text-align: center;
+    background-color: #00B388;
+    color: white;
+    font-weight: bold;
+    font-size: 28px;
+    padding: 5px 0px 5px 0px;
+    box-shadow: 5px 5px 30px -7px rgba(0, 0, 0, 0.75);
+}
+
+div.main ul {
+    padding: 0;
+    list-style-type: none;
+    margin: 0px 0px 0px 0px;
+}
+
+div.main ul li {
+    color: white;
+    margin-bottom: 5px;
+    background-color: #00B388;
+    font-size: 16px;
+    height: 32px;
+    box-shadow: 5px 5px 10px 1px rgba(80, 80, 80, 0.50);
+}
+
+div.pending {
+    width: 23%;
+    padding-right: 20px;
+}
+
+
+div.stopwatch {
+    width: 55%;
+}
+
+.main li div.text {
+    margin-left: 10px;
+    padding-top: 5px;
+    flex: 1 1;
+}
+
+.main li div.text.duration {
+    text-align: right;
+    padding-right: 6px;
+    flex: 0 0 100px;
+}
+
+.main ul li {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+}
+
+.main li button {
+    border: 0px solid;
+    background-color: #ffffff;
+    cursor: pointer;
+    height: 30px;
+    font-size: 14px;
+    flex: 0 0 30px;
+}
+
+.main li button:focus {
+    outline: 0;
+}
+
+.main li button::-moz-focus-inner {
+    border: 0;
+}
+
+.main button .btn-text {
+    display: none;
+}
+
+.main li button:hover {
+    font-size: 16px;
+}
+
+.main li button:active {
+    font-size: 12px;
+}
+
+.pending li button.remove {
+    margin: 1px 0px 0px 1px;
+}
+
+.pending li button.promote {
+    margin: 1px 1px 0px 0px;
+}
+
+.done li button {
+    margin: 1px 1px 1px 0px;
+}
+
+div.done {
+    padding-left: 20px;
+    width: 22%;
+}
+
+
+.pending button.shuffle {
+    width: 100%;
+}
+
+div.title {
+    margin: 10px 0px 10px 0px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 2px 1px 6px rgba(2, 2, 2, 0.5);
+    text-align: center;
+}

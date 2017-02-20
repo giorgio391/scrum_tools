@@ -1,0 +1,58 @@
+<div class="stopwatch uninitialized" *ngIf="!initialized">Initializing...</div>
+<div class="stopwatch initialized" *ngIf="initialized">
+    <div class="aux">
+        <div class="start">
+            <button (click)="start()" *ngIf="!started" title="Start the stopwatch.">
+                <i class="fa fa-play-circle-o" aria-hidden="true"></i>
+                <i class="btn-text">Start</i>
+            </button>
+        </div>
+        <div class="stop">
+            <button (click)="stop()" *ngIf="started" title="Stop the stopwatch.">
+                <i class="fa fa-stop-circle-o" aria-hidden="true"></i>
+                <i class="btn-text">Stop</i>
+            </button>
+
+        </div>
+        <div class="reset">
+            <button (click)="reset()" *ngIf="started" title="Reset the stopwatch and re-start it.">
+                <i class="fa fa-undo" aria-hidden="true"></i>
+                <i class="btn-text">Reset</i>
+            </button>
+        </div>
+        <div class="reset-current">
+            <button (click)="resetCurrent()" *ngIf="started" title="Re-start re-setting time.">
+                <i class="fa fa-fast-backward" aria-hidden="true"></i>
+                <i class="btn-text">Reset current</i>
+            </button>
+        </div>
+        <div class="next">
+            <button (click)="next()" *ngIf="started" title="Jump into the next turn.">
+                <i class="fa fa-fast-forward" aria-hidden="true"></i>
+                <i class="btn-text">Next</i>
+            </button>
+        </div>
+    </div>
+    <div class="totals">
+        <div class="net" title="Total time minus paused time."><label>Net:</label> {{netDuration | stopwatch}}</div>
+        <div class="gross" title="Total time,"><label>Total:</label> {{grossDuration | stopwatch}}</div>
+    </div>
+    <div class="main"
+         [class.orange-background]="unitLeftDuration.inMilliseconds < 10000 && unitLeftDuration.inMilliseconds > 1000"
+         [class.red-background]="unitLeftDuration.inMilliseconds < 1000">
+        <div class="current" (click)="started ? next() : start()" title="Current turn left time.">{{unitLeftDuration |
+            stopwatch}}
+        </div>
+        <div class="toggle-pause" [class.pause]="!paused" [class.resume]="paused" title="Toggle stopwatch pause.">
+            <button (click)="started ? togglePause() : start()">
+                <!--<i class="fa fa-circle fa-stack-1x"></i>-->
+                <i class="fa" [class.fa-play-circle-o]="!started"
+                   [class.fa-pause-circle-o]="started && !paused"
+                   [class.fa-play-circle]="started && paused"
+                   aria-hidden="true"></i>
+                <i class="btn-text">{{started ? (paused ? "Resume" : "Pause") : "Start"}}</i>
+            </button>
+        </div>
+    </div>
+
+</div>
