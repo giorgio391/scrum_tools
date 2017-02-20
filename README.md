@@ -31,7 +31,7 @@ The main objective of the project is to create challenges to
 [Dart](https://www.dartlang.org/) /
 [Dart webdev](https://webdev.dartlang.org/) beginners
 (which is my case). That is, in a certain way it is
-a motivational project. Nevertheless we will try to make he effort worth
+a motivational project. Nevertheless we will try to make the effort worth,
 creating useful and handy tools.
 
 
@@ -44,7 +44,7 @@ this code in two different ways:
 
 1. Using the components as parts of your own web application. In this
 case I take for granted that you know how to use
-[Dart webdev](https://webdev.dartlang.org/) comnponents and, therefore,
+[Dart webdev](https://webdev.dartlang.org/) components and, therefore,
 you should be able to reuse this code by reading the code documentation.
 * As a tiny web application. In this case you must perform the
 following steps:
