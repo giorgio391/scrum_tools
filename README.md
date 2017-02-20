@@ -120,4 +120,4 @@ A short snippet describing the license (MIT, Apache, etc.)
 
 This project is released and distributed under the
 [MIT](https://opensource.org/licenses/MIT) license model
-(please see [LICENSE](LICENSE) as a separate file).
+(please see [LICENSE](LICENSE)).
