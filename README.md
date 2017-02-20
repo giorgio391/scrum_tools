@@ -1,3 +1,5 @@
+![Screen shot](screenshot.png)
+
 ## Synopsis
 <!--
 At the top of the file there should be a short introduction and/ or
