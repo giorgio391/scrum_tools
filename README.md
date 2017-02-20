@@ -54,6 +54,11 @@ following steps:
     in your machine [Git](https://git-scm.com/) and
     [Dart SDK](https://www.dartlang.org/tools/sdk).
 
+    ```
+    $> git clone https://github.com/giorgio391/scrum_tools.git
+    $> cd scrum_tools
+    ```
+
 
     2. Go into the directory in which you got the code (the one with the
     `pubspec.yaml`) and run the following:
