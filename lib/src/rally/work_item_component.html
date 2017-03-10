@@ -1,0 +1,37 @@
+<div class="rd-work-item-panel">
+    <div *ngIf="workItem == null">
+        <div *ngIf="message == null">No work item yet.</div>
+        <div *ngIf="message != null" class="message">{{message}}</div>
+    </div>
+    <div class="rd-work-item" *ngIf="workItem != null">
+        <div class="header">
+            <div class="formatted-id">
+                <a href="https://rally1.rallydev.com/#/55308115013d/search?keywords={{workItem.formattedID}}" target="_blank">{{workItem.formattedID}}</a>
+            </div>
+            <div *ngIf="isDefect && workItem.priority != null" class="priority">
+                <div [class.highlight-1]="workItem.priority.order==3" [class.highlight-2]="workItem.priority.order==4">{{workItem.priority.name}}</div>
+            </div>
+            <div *ngIf="isDefect && workItem.severity != null" class="severity">
+                <div [class.highlight-1]="workItem.severity.order==4" [class.highlight-2]="workItem.severity.order==5">{{workItem.severity.name}}</div>
+            </div>
+            <div class="iteration"><div>{{workItem.iteration.name}}</div></div>
+            <div *ngIf="workItem.planEstimate != null" class="plan-estimate"><div>P:&nbsp;{{workItem.planEstimate}}</div></div>
+            <div *ngIf="workItem.owner != null" class="owner">{{workItem.owner.displayName}}</div>
+            <div class="blocked" [class.is-blocked]="workItem.blocked" title="{{workItem.blocked ? 'Blocked' : 'Not blocked'}}">B</div>
+            <div class="ready" [class.is-ready]="workItem.ready" title="{{workItem.ready ? 'ready' : 'Not ready'}}">R</div>
+            <div class="scheduleState" title="{{workItem.scheduleState.name}}">{{workItem.scheduleState.abbr}}</div>
+            <div *ngIf="workItem.expedite" class="expedite"><div>Expedite</div></div>
+        </div>
+        <div class="body">
+            <div class="name"><a href="https://rally1.rallydev.com/#/55308115013d/search?keywords={{workItem.formattedID}}" target="_blank">{{workItem.name}}</a></div>
+            <div class="blocked-reason" *ngIf="workItem.blocked && workItem.blockedReason != null"><strong>Blocked reason:</strong> {{workItem.blockedReason}}</div>
+        </div>
+        <div class="footer">
+            <div class="creation-date">{{workItem.creationDate.toLocal() | date:'dd-MMM-y HH:mm'}}</div>
+            <div class="last-update-date">{{workItem.lastUpdateDate.toLocal() | date:'dd-MMM-y HH:mm'}}</div>
+            <div *ngIf="workItem.tags != null" class="tags">
+                <div *ngFor="let tag of workItem.tags" class="tag">{{tag}}</div>
+            </div>
+        </div>
+    </div>
+</div>

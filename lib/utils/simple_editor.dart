@@ -1,3 +1,4 @@
+import 'dart:html';
 import 'package:angular2/core.dart';
 
 /// Simple editor class to provide a web component to edit a string value.
@@ -5,7 +6,7 @@ import 'package:angular2/core.dart';
 @Component(selector: 'simple-editor',
     template: '''
     <div class="simple_editor">
-      <input [(ngModel)]="value" placeholder="{{placeHolder}}" />
+      <input (keyup)="keyUp(\$event)" [(ngModel)]="value" placeholder="{{placeHolder}}" />
       <button (click)="commit()" title="Commit current value.">
         <i class="fa fa-check" aria-hidden="true"></i>
         <i class="btn-text">Commit</i>
@@ -79,6 +80,10 @@ class SimpleEditor {
   void commit() {
     commitValue.add(value);
     value = null;
+  }
+
+  void keyUp(KeyboardEvent event) {
+    if (event.which == 13) commit();
   }
 
 }

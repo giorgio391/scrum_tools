@@ -1,15 +1,22 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:start/start.dart';
 import 'package:logging/logging.dart';
+import 'package:prompt/prompt.dart';
+import 'package:start/start.dart';
+import 'package:scrum_tools/utils/cache.dart';
+
 
 const webDirArg = 'web-dir';
 const hostArg = 'host';
 const portArg = 'port';
 const webSocketArg = 'web-socket';
 const helpArg = 'help';
+const rdProxyArg = 'rd-proxy';
+const rdUserArg = 'rd-user';
+const rdPassArg = 'rd-pass';
 
 typedef void ServerInitializer(Server appServer);
 
@@ -39,8 +46,7 @@ Future main(List<String> arguments) async {
             'will be used. '
             'If his option was ommited, no web directory would be served.'
     )..addOption(hostArg,
-        help: 'Allows to set the host address to bind the server.',
-        defaultsTo: InternetAddress.ANY_IP_V4.host
+        help: 'Allows to set the host address to bind the server.'
     )..addOption(portArg, abbr: 'p',
         help: 'Allows to set the port used by the server. '
             'An integer positive value after the option must be provided.',
@@ -54,7 +60,11 @@ Future main(List<String> arguments) async {
             'A value after the option must be provided to define the path to '
             'invoke web sockets (i.e. "ws" for "/ws"). '
             'If his option was ommited, no web socket service would be started.'
-    );
+    )
+    ..addFlag(rdProxyArg, abbr: 'r',
+        help: 'Starts the Rallydev proxy service.')
+    ..addOption(rdUserArg, help: 'Username to be used to connect to Rallydev.')
+    ..addOption(rdPassArg, help: 'Password of the user to be used to connect to Rallydev.');
   ArgResults argResults = () {
     try {
       return argParser.parse(arguments);
@@ -66,7 +76,7 @@ Future main(List<String> arguments) async {
   //--
 
   // Need help?
-  if (argResults[helpArg] != false) {
+  if (argResults[helpArg] == true) {
     print(argParser.usage);
     exit(0);
   }
@@ -119,8 +129,46 @@ Future main(List<String> arguments) async {
     initializers.add(wsController._initializeWebSockets);
   }
 
+  // Start Rallydev proxy?
+  if (argResults[rdProxyArg] == true) {
+    String user = () {
+      if (argResults[rdUserArg] == null) {
+        return askSync(new Question('Username for Rallydev'));
+      }
+     return argResults[rdUserArg];
+    }();
+    String pass = () {
+      if (argResults[rdPassArg] == null) {
+        return askSync(new Question('[${argResults[rdUserArg]}] password', secret: true));
+      }
+      return argResults[rdPassArg];
+    }();
+    _RDProxy rdProxy = new _RDProxy(user, pass);
+    initializers.add(rdProxy.init);
+  }
+
+  // Resolve host
+  String host = await () async {
+    if (argResults[hostArg] == null) {
+      List<String> addresses = new List<String>();
+      addresses.add(InternetAddress.LOOPBACK_IP_V4.address);
+      addresses.add(InternetAddress.ANY_IP_V4.address);
+      for (NetworkInterface nif in await NetworkInterface.list()) {
+        for (InternetAddress addr in nif.addresses) {
+          addresses.add(addr.address);
+        }
+      }
+      return askSync(new Question('Host address', allowed: addresses));
+    }
+    return argResults[hostArg];
+  }();
+
+  close(); // Prompt close
+
+  // ###################### INITIATE SERVICES *** START ***********
+
   if (initializers.length > 0) {
-    start(host: argResults[hostArg], port: port).then((Server appServer) {
+    start(host: host, port: port).then((Server appServer) {
       for (ServerInitializer initializer in initializers) {
         initializer(appServer);
       }
@@ -129,8 +177,11 @@ Future main(List<String> arguments) async {
     _log.info('Nothing to do! Server stopped.');
     exit(0);
   }
+
+  // ###################### INITIATE SERVICES *** END ***********
 }
 
+// ******** WEB SOCKET GROUPS SERVICE *** START ******************
 class _WebSocketController {
 
   Logger _log = new Logger("web-sockets");
@@ -232,3 +283,71 @@ class _Group {
   }
 
 }
+// ******** WEB SOCKET GROUPS SERVICE *** END ******************
+
+// ******** RALLYDEV PROXY SERVICE *** START *******************
+
+class _RDProxy {
+
+  static const String _baseUrl =
+      'https://rally1.rallydev.com/slm/webservice/v2.0';
+
+  static final Uri _baseUri = Uri.parse(_baseUrl);
+
+  Logger _log = new Logger("rd-proxy");
+
+  Cache<String, String> _cache;
+  HttpClient _httpClient;
+
+  String _user, _pass, _pathRoot;
+
+  _RDProxy(this._user, this._pass, [this._pathRoot = '/rd']);
+
+  void init(Server appServer) {
+    _cache = new Cache<String, String>();
+    _cache.retriever = _handle;
+
+    HttpClientBasicCredentials credentials =
+    new HttpClientBasicCredentials(_user, _pass);
+
+    _httpClient = new HttpClient();
+    _httpClient.addCredentials(_baseUri, 'Rally ALM', credentials);
+
+    // Process any 'get' request.
+    appServer.get(new RegExp("${_pathRoot}/.*")).listen((Request request) {
+      Response response = request.response;
+      String path = request.path;
+      response.header('Content-Type', 'application/json; charset=UTF-8');
+      if (path == '${_pathRoot}/status') {
+        response.send('{"status": "OK"}');
+      } else {
+        String requestedUri = request.input.requestedUri.toString();
+        String uriPart = requestedUri.substring(
+            requestedUri.indexOf('${_pathRoot}/') + _pathRoot.length);
+        _cache.get(uriPart).then((String value) {
+          response.send(value);
+        });
+      }
+    });
+    _log.info('Rallydev proxy ready at [${_pathRoot}].');
+  }
+
+  // Delegate the call to the Rallydev server.
+  Future<String> _handle(String uriPart) {
+    Uri uri = Uri.parse('${_baseUrl}${uriPart}');
+    Completer <String> completer = new Completer <String>();
+    _httpClient.getUrl(uri).then((HttpClientRequest request) {
+      request.close().then((HttpClientResponse response) {
+        StringBuffer sb = new StringBuffer();
+        response.transform(UTF8.decoder).listen((content) {
+          sb.write(content);
+        })..onDone(() {
+            completer.complete(sb.toString());
+          });
+      });
+    });
+    return completer.future;
+  }
+}
+
+// ******** RALLYDEV PROXY SERVICE *** END *********************

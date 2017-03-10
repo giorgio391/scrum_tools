@@ -8,19 +8,18 @@ import 'package:angular2/core.dart';
 @Injectable()
 class ScrumService {
 
-  Completer<ScrumConfig> _completer;
-
   /// Provides a [Future] to obtain a [ScrumConfig] object.
   Future<ScrumConfig> get config {
-    if (_completer == null) {
-      _completer = new Completer();
+    Completer<ScrumConfig> completer;
+    if (completer == null) {
+      completer = new Completer();
       HttpRequest.getString('scrum_config.json').then((String json) {
         Map values = JSON.decode(json);
         ScrumConfig config = new ScrumConfig()..teamMemberNames = values['team'];
-        _completer.complete(config);
+        completer.complete(config);
       });
     }
-    return _completer.future;
+    return completer.future;
   }
 }
 

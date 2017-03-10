@@ -1,0 +1,186 @@
+@import "../../../dev-assets/_flex";
+@import "../../../dev-assets/_rd-elements";
+
+$psnow-green-color: #00B388;
+
+.row-element {
+  @include flexbox();
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.label-badge-container {
+  @include flexbox();
+  background: $psnow-green-color;
+  padding: 5px 2px 5px 2px;
+}
+
+.label-badge {
+  @extend .row-element;
+  @include flex();
+  @include rounded(10px);
+
+  font-weight: bold;
+  font-size: smaller;
+  background: white;
+  color: $psnow-green-color;
+  padding: 0 10px 0 10px;
+}
+
+.tiny-badge {
+  @extend .row-element;
+  background: $rd-color-gray;
+  color: white;
+  margin: 5px 2px 5px 2px;
+  font-weight: bold;
+}
+
+.circle {
+  @extend .tiny-badge;
+  @include circle(24px);
+}
+
+.rd-work-item {
+  @include flexbox();
+  @include flex-direction(column);
+  @include box-shadow(5px, 5px, 30px, -7px, $rd-color-shadow);
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  .header {
+    @include flexbox();
+    @include flex-direction();
+    @include flex-wrap();
+    .formatted-id {
+      @extend .row-element;
+      @include flex-shrink(1);
+      @include flex-grow(1);
+      text-align: left;
+      background: $psnow-green-color;
+      color: white;
+      font-weight: bold;
+      padding: 5px;
+    }
+    .priority {
+      @extend .label-badge-container;
+      div {
+        @extend .label-badge;
+        background-color: #BBBBBB;
+        color: white;
+        &.highlight-1 {
+          background: $rd-highlight-1;
+        }
+        &.highlight-2 {
+          background: $rd-highlight-2;
+        }
+      }
+    }
+    .severity {
+      @extend .label-badge-container;
+      div {
+        @extend .label-badge;
+        background-color: #BBBBBB;
+        color: white;
+        &.highlight-1 {
+          background: $rd-highlight-1;
+        }
+        &.highlight-2 {
+          background: $rd-highlight-2;
+        }
+      }
+    }
+    .iteration {
+      @extend .label-badge-container;
+      div {
+        @extend .label-badge;
+      }
+    }
+    .plan-estimate {
+      @extend .label-badge-container;
+      div {
+        @extend .label-badge;
+      }
+    }
+    .owner {
+      @extend .row-element;
+      border-left: 5px solid $psnow-green-color;
+      padding: 5px;
+      font-size: smaller;
+      font-style: italic;
+    }
+    .blocked {
+      @extend .circle;
+      &.is-blocked {
+        background: $rd-color-blocked;
+      }
+    }
+    .ready {
+      @extend .circle;
+      &.is-ready {
+        background: $rd-color-ready;
+      }
+    }
+    .scheduleState {
+      @extend .tiny-badge;
+      @include rounded(6px);
+      background: $rd-color-status;
+      width: 24px;
+      height: 24px;
+      margin-right: 5px;
+
+    }
+    .expedite {
+      @extend .label-badge-container;
+      background: $rd-color-blocked;
+      div {
+        @extend .label-badge;
+        @include rounded(0);
+        background: $rd-color-blocked;
+        color: white;
+      }
+    }
+  }
+  .body {
+    margin: 8px;
+    .blocked-reason {
+      @include rounded(6px);
+      border: 1px solid $rd-color-blocked;
+      margin-top: 5px;
+      padding: 5px 10px 5px 10px;
+      color: $rd-color-blocked;
+      background-color: $rd-color-blocked-bg;
+      font-size: smaller;
+    }
+  }
+  .footer {
+    @include flexbox();
+    @include flex-direction();
+    @include flex-wrap();
+    font-style: italic;
+    font-size: smaller;
+    background: #A0A0A0;
+    color: white;
+    padding: 5px 10px 5px 10px;
+    .creation-date {
+      @include flex-shrink(1);
+      @include flex-grow(1);
+    }
+    .tags {
+      margin-left: 7px;
+      @include flexbox();
+      @include flex-direction();
+      .tag {
+        margin-left: 3px;
+        padding: 0 3px 0 3px;
+        font-style: normal;
+        font-size: smaller;
+        @include rounded(4px);
+        border: 1px solid #005EB8;
+        color: #005EB8;
+        background: #CCEEF9;
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+$rd-color-gray: #C0C0C0;
+$rd-color-ready: #8DC63F;
+$rd-color-blocked: #B81B10;
+$rd-color-blocked-bg: #F2D3D0;
+$rd-color-status: #005EB8;
+$rd-color-shadow: rgba(0,0,0,0.75);
+$rd-highlight-1: #F9A814;
+$rd-highlight-2: #B81B10;
+
+@mixin circle($width) {
+  width: $width;
+  height: $width;
+  -webkit-border-radius: $width/2;
+  -moz-border-radius: $width/2;
+  border-radius: $width/2;
+}
+
+@mixin rounded($radius) {
+  -webkit-border-radius: $radius;
+  -moz-border-radius: $radius;
+  border-radius: $radius;
+}
+
+@mixin box-shadow($horizontal, $vertical, $blur, $spread, $color, $inset: false) {
+  @if $inset {
+    -webkit-box-shadow:inset $horizontal $vertical $blur $spread $color;
+    -moz-box-shadow:inset $horizontal $vertical $blur $spread $color;
+    box-shadow:inset $horizontal $vertical $blur $spread $color;
+  } @else {
+    -webkit-box-shadow: $horizontal $vertical $blur $spread $color;
+    -moz-box-shadow: $horizontal $vertical $blur $spread $color;
+    box-shadow: $horizontal $vertical $blur $spread $color;
+  }
+}
