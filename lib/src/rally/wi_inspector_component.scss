@@ -1,0 +1,22 @@
+@import "../../../dev-assets/_flex";
+
+.control {
+  @include flexbox();
+  .input {
+    width: 200px;
+    margin-right: 25px;
+  }
+  .message-panel {
+    @include flexbox();
+    @include justify-content(center);
+    @include flex-direction(column);
+    .error-message {
+      color: red;
+    }
+    .info-message {
+      color: green;
+    }
+
+  }
+
+}

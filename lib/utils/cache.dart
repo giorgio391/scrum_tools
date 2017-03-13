@@ -53,9 +53,25 @@ class Cache<K, V> {
     return _map.remove(key);
   }
 
-  /// Returns the total number os cached item.
+  /// Put the item into the cache replacing it if necessary as long as
+  /// the key and the item are not [null].
+  void cacheItem(K key, V item) {
+    if (key != null && item != null) {
+      _map[key] = item;
+    }
+  }
+
+  /// Asynchronously put the item into the cache replacing it if necessary as
+  /// long as the key and the item are not [null].
+  void cacheItemAsync(K key, Future<V> future) {
+    if (key != null && future != null) {
+      future.then((V item) {
+        cacheItem(key, item);
+      });
+    }
+  }
+
+  /// Returns the total number os cached items.
   int get count => _map.length;
 
 }
-
-

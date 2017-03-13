@@ -1,0 +1,32 @@
+@import "../../../dev-assets/_flex";
+@import "../../../dev-assets/_rd-elements";
+
+.main {
+  padding: 0;
+  @include flexbox();
+  @include flex-direction(row);
+  font-size: smaller;
+  color: white;
+  ul {
+    margin: 6px 6px 6px 30px;
+    padding: 0;
+  }
+  .label {
+    float: right;
+    margin: 5px 8px 0 0;
+    font-weight: bold;
+  }
+  .message-panel {
+    @include rounded(8px);
+    margin: 4px;
+    @include flex(1, 1, auto);
+  }
+  .important {
+    @extend .message-panel;
+    background: #ff4a48;
+  }
+  .warn {
+    @extend .message-panel;
+    background: #ffba3b;
+  }
+}

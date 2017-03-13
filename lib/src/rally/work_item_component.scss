@@ -5,8 +5,8 @@ $psnow-green-color: #00B388;
 
 .row-element {
   @include flexbox();
-  justify-content: center;
-  flex-direction: column;
+  @include flex-direction(column);
+  @include justify-content(center);
   text-align: center;
 }
 

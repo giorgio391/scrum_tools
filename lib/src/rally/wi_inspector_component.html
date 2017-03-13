@@ -1,0 +1,17 @@
+<div class="control">
+    <div class="input">
+        <simple-editor [placeHolder]="'Work item...'" (commitValue)="workItemCode=$event"></simple-editor>
+    </div>
+    <div class="message-panel">
+        <div *ngIf="errorMessage != null" class="error-message">{{errorMessage}}</div>
+        <div *ngIf="infoMessage != null && errorMessage == null" class="info-message">{{infoMessage}}</div>
+    </div>
+</div>
+<div *ngIf="workItem != null" class="wi-panel">
+    <div class="validation-panel">
+        <rd-wi-validation [workItem]="workItem"></rd-wi-validation>
+    </div>
+    <div class="wi-view-panel">
+        <rd-work-item [workItem]="workItem"></rd-work-item>
+    </div>
+</div>

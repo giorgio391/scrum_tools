@@ -1,0 +1,14 @@
+<div *ngIf="report != null" class="main">
+    <div *ngIf="hasImportant" class="important">
+        <div class="label">IMPORTANT</div>
+        <ul>
+            <li *ngFor="let issue of important">{{issue.name}}</li>
+        </ul>
+    </div>
+    <div *ngIf="hasWarn" class="warn">
+        <div class="label">WARN</div>
+        <ul>
+            <li *ngFor="let issue of warn">{{issue.name}}</li>
+        </ul>
+    </div>
+</div>

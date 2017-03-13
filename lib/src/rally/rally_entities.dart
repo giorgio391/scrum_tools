@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 int _idFromUrl(String url) {
-  return int.parse(url.substring(url.lastIndexOf(r'/')+1));
+  return int.parse(url.substring(url.lastIndexOf(r'/') + 1));
 }
 
 class RDScheduleState {
@@ -192,13 +192,16 @@ abstract class RDEntity {
   RDEntity._internalFromMap(Map<String, dynamic> map) {
     _objectID = map['ObjectID'];
   }
+
+  operator ==(RDEntity entity) =>
+      entity != null && entity._objectID == _objectID;
 }
 
 class RDIteration extends RDEntity {
 
   String _name, _state;
   DateTime _creationDate, _startDate, _endDate;
-  int _taskEstimateTotal, _planEstimate, _plannedVelocity;
+  double _taskEstimateTotal, _planEstimate, _plannedVelocity;
 
   String get name => _name;
 
@@ -210,15 +213,15 @@ class RDIteration extends RDEntity {
 
   DateTime get endDate => _endDate;
 
-  int get taskEstimateTotal => _taskEstimateTotal;
+  double get taskEstimateTotal => _taskEstimateTotal;
 
-  int get planEstimate => _planEstimate;
+  double get planEstimate => _planEstimate;
 
-  int get plannedVelocity => _plannedVelocity;
+  double get plannedVelocity => _plannedVelocity;
 
   RDIteration._internal(int id, this._name) : super._internal(id);
 
-  RDIteration._fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
+  RDIteration.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
     _name = map['Name'];
     _state = map['State'];
     _creationDate = DateTime.parse(map['CreationDate']);
@@ -228,6 +231,16 @@ class RDIteration extends RDEntity {
     _planEstimate = map['PlanEstimate'];
     _plannedVelocity = map['PlannedVelocity'];
   }
+}
+
+
+/// Objects of this class represents Rallydev projects.
+class RDProject extends RDEntity {
+  String _name;
+
+  String get name => _name;
+
+  RDProject.DTO(int id, this._name) : super._internal(id);
 }
 
 /// Objects of this class represents Rallydev users.
@@ -241,7 +254,7 @@ class RDUser extends RDEntity {
 
   String get emailAddress => _emailAddress;
 
-  RDUser._internal(int id, this._displayName) : super._internal(id);
+  RDUser.DTO(int id, this._displayName) : super._internal(id);
 
   RDUser.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
     _userName = map['UserName'];
@@ -256,11 +269,14 @@ abstract class RDWorkItem extends RDEntity {
   String _formattedID, _name, _blockedReason;
   bool _ready, _blocked;
   RDUser _owner;
+  RDProject _project;
   DateTime _creationDate, _lastUpdateDate;
   double _planEstimate;
   bool _expedite;
   RDIteration _iteration;
   RDScheduleState _scheduleState;
+
+  String get name => _name;
 
   bool get expedite => _expedite;
 
@@ -272,13 +288,13 @@ abstract class RDWorkItem extends RDEntity {
 
   String get formattedID => _formattedID;
 
-  String get name => _name;
-
   bool get ready => _ready;
 
   bool get blocked => _blocked;
 
   RDUser get owner => _owner;
+
+  RDProject get project => _project;
 
   String get blockedReason => _blockedReason;
 
@@ -314,12 +330,18 @@ abstract class RDWorkItem extends RDEntity {
       });
     }
     if (map['Owner'] != null) {
-      _owner = new RDUser._internal(
+      _owner = new RDUser.DTO(
           _idFromUrl(map['Owner']['_ref']), map['Owner']['_refObjectName']);
     }
-    _iteration = new RDIteration._internal(
-        _idFromUrl(map['Iteration']['_ref']),
-        map['Iteration']['_refObjectName']);
+    if (map['Project'] != null) {
+      _project = new RDProject.DTO(
+          _idFromUrl(map['Project']['_ref']), map['Project']['_refObjectName']);
+    }
+    if (map['Iteration'] != null) {
+      _iteration = new RDIteration._internal(
+          _idFromUrl(map['Iteration']['_ref']),
+          map['Iteration']['_refObjectName']);
+    }
     _planEstimate = map['PlanEstimate'];
     _expedite = map['Expedite'];
   }
