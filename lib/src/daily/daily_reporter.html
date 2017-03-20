@@ -2,14 +2,15 @@
     <div class="entry-form">
         <daily-form
                 [model]="onEditing"
+                [teamMemberCode]="currentTeamMemberCode"
                 (onEntryEdited)="entryEdited($event)"
-                (workItemCodeChange)="workItemCode=$event">
+                (workItemCodeChange)="workItemCode=$event"
+                (onStopwatchRequest)="stopwatchRequest($event)">
         </daily-form>
     </div>
     <div class="main">
         <div class="header">
             <div>{{workItemCode}}&nbsp;{{currentWorkItem?.name}}</div>
-            <div>{{receivedData}}</div>
         </div>
         <div class="body">
             <div *ngIf="!hasEntries" class="no-entry"><div>No entry.</div></div>

@@ -7,8 +7,7 @@ import 'package:scrum_tools/src/web_socket_service.dart';
 @Component(selector: 'wi-inspector',
     templateUrl: 'wi_inspector_component.html',
     styleUrls: const ['wi_inspector_component.css'],
-    providers: const [RallyService, WorkItemValidationService, WebSocketService
-    ],
+    providers: const [RallyService, WorkItemValidationService],
     directives: const [SimpleEditor, WorkItem, WorkItemValidation]
 )
 class WorkItemInspector {
@@ -17,33 +16,25 @@ class WorkItemInspector {
   String infoMessage;
 
   RallyService _rallyService;
-  WebSocketService _wsService;
-  WSSocket _wsSocket;
+  DailyEventBus _eventBus;
 
   @Input()
   RDWorkItem workItem;
 
-  WorkItemInspector(this._rallyService, this._wsService) {
-    _wsService.connect().then((WSSocket wsSocket) {
-      _wsSocket = wsSocket;
-      _wsSocket.addListener(_dataReceived);
-      _wsSocket.joinGroup(25);
-    });
+  WorkItemInspector(this._rallyService, this._eventBus) {
+    _eventBus.addWorkItemListener(_workItemReceived);
   }
 
-  void _dataReceived(String key, Map<String, Object> data) {
-    if (key == 'wi') {
-      Function finder = (data['ref'] as String).startsWith('DE') ?
-      _rallyService.getDefectById : _rallyService
-          .getHierarchicalRequirementById;
-      Future<RDWorkItem> future = finder(data['id']);
-      future.then((RDWorkItem workItem) {
-        this.workItem = workItem;
-      }).catchError((error) {
-        infoMessage = null;
-        errorMessage = error.toString();
-      });
-    }
+  void _workItemReceived(int id, String code) {
+    Function finder = code.startsWith('DE') ?
+    _rallyService.getDefectById : _rallyService.getHierarchicalRequirementById;
+    Future<RDWorkItem> future = finder(id);
+    future.then((RDWorkItem workItem) {
+      this.workItem = workItem;
+    }).catchError((error) {
+      infoMessage = null;
+      errorMessage = error.toString();
+    });
   }
 
   void set workItemCode(String wiCode) {

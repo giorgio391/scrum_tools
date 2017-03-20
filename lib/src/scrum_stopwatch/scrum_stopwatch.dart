@@ -4,6 +4,8 @@ import 'package:angular2/core.dart';
 import 'model/timer_stopwatch.dart';
 import 'stopwatch_pipe.dart';
 
+import 'package:scrum_tools/src/web_socket_service.dart';
+
 /// This class provides a countdown stop watch web component.
 ///
 /// As part of the component there are controls to let the user
@@ -77,11 +79,28 @@ class ScrumStopwatch implements OnInit {
 
   _ScrumStopwatchDelegate _delegate = new _ScrumStopwatchDelegate();
 
+  DailyEventBus _eventBus;
+
+  ScrumStopwatch(this._eventBus) {
+    _eventBus.addStopwatchListener(_commandReceived);
+  }
+
   /// Initialize the component.
   void ngOnInit() {
-    _delegate = new _ScrumStopwatchInitializedDelegate(this,
-        targetUnitDuration, beepAudio, hornAudio, hornThreshold, alertAudio,
+    _delegate = new _ScrumStopwatchInitializedDelegate(
+        this,
+        targetUnitDuration,
+        beepAudio,
+        hornAudio,
+        hornThreshold,
+        alertAudio,
         alertThreshold);
+  }
+
+  void _commandReceived(String command) {
+    if (command == 'next') {
+      next();
+    }
   }
 
   /// [true] if the stopwatch has been already started, false otherwise.
@@ -265,7 +284,8 @@ class _ScrumStopwatchInitializedDelegate extends _ScrumStopwatchDelegate {
   }
 
   Duration get startOffset {
-    return parent.startOffsetProvider ==  null ? null : parent.startOffsetProvider();
+    return parent.startOffsetProvider == null ? null : parent
+        .startOffsetProvider();
   }
 
   @override

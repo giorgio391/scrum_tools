@@ -13,18 +13,20 @@ import 'package:scrum_tools/src/utils/command.dart';
     templateUrl: 'daily_reporter.html',
     styleUrls: const['daily_reporter.css'],
     directives: const [DailyForm, DailyEntryView],
-    providers: const [RallyService, WebSocketService, CommandsService]
+    providers: const [RallyService, DailyEventBus, WebSocketService, CommandsService]
 )
 class DailyReporter {
 
-  WebSocketService _webSocketService;
+  DailyEventBus _eventBus;
   RallyService _rallyService;
   RDWorkItem _currentWorkItem;
   CommandsService _commands;
 
   RDWorkItem get currentWorkItem => _currentWorkItem;
 
-  WSSocket _wsSocket;
+  String _currentTeamMemberCode;
+
+  String get currentTeamMemberCode => _currentTeamMemberCode;
 
   List<DailyEntry> entries;
 
@@ -32,37 +34,34 @@ class DailyReporter {
 
   DailyEntry onEditing;
 
-  //@Output()
-  //EventEmitter<DailyEntry> onStartEdit = new EventEmitter<DailyEntry>();
-
-  // TODO remove
-  String receivedData;
-
   String get workItemCode =>
       _currentWorkItem == null ? null : _currentWorkItem.formattedID;
+
+  DailyReporter(this._rallyService, this._eventBus, this._commands) {
+    _eventBus.addTeamMemberListener(teamMemberCodeReceived);
+  }
+
+  void teamMemberCodeReceived(String code) {
+    _currentTeamMemberCode = code;
+  }
 
   @Input()
   void set workItemCode(String workItemCode) {
     if (workItemCode == null) {
       _currentWorkItem = null;
-      _wsSocket.message({'wi': null});
+      _eventBus.sendWorkItemMessage(null);
     } else {
       _rallyService.getWorkItem(workItemCode).then((RDWorkItem workItem) {
         _currentWorkItem = workItem;
-        _wsSocket.message(
-            {"wi": {"id": workItem.ID, "ref": workItem.formattedID}});
+        _eventBus.sendWorkItemMessage(workItem);
       }); //.catchError((error) {
       // TODO
       //});
     }
   }
 
-  DailyReporter(this._rallyService, this._webSocketService, this._commands) {
-    _webSocketService.connect().then((WSSocket wsSocket) {
-      _wsSocket = wsSocket;
-      _wsSocket.addListener(_dataReceived);
-      _wsSocket.joinGroup(25);
-    });
+  void stopwatchRequest(String command) {
+    _eventBus.sendStopwatchCommandMessage(command);
   }
 
   void entryClick(DailyEntry entry, MouseEvent event) {
@@ -126,10 +125,6 @@ class DailyReporter {
   bool isSelected(DailyEntry entry) =>
       entry != null && entries != null && entries.isNotEmpty &&
           entries.contains(entry) && selected.contains(entry);
-
-  void _dataReceived(String key, Map<String, Object>data) {
-    //receivedData = data.toString(); // TODO Remove
-  }
 
   void entryEdited(ChangeRecord<DailyEntry> changeRecord) {
     if (changeRecord != null) {

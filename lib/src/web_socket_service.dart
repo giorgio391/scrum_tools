@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:html';
 import 'package:angular2/core.dart';
 import 'package:scrum_tools/src/runtime_service.dart';
+import 'package:scrum_tools/src/rally/rally_entities.dart';
 
 typedef void listener(String key, Map<String, Object> data);
 
@@ -56,12 +57,13 @@ class WSSocket {
         sendRawData('$key: $data');
       } else if (data is DateTime) {
         sendRawData('$key: "$data"');
-      } else sendData(key, data.toString());
+      } else
+        sendData(key, data.toString());
     }
   }
 
   void ping([data]) {
-      sendData('ping', data);
+    sendData('ping', data);
   }
 
   void message(data) {
@@ -86,7 +88,7 @@ class WSSocket {
         data = {key: sData};
       } else {
         key = sData.substring(0, splitIndex);
-        String objectString = sData.substring(splitIndex+1);
+        String objectString = sData.substring(splitIndex + 1);
         var parsedData = JSON.decode(objectString);
         if (parsedData is Map) {
           data = parsedData;
@@ -119,5 +121,111 @@ class WebSocketService {
       completer.complete(new WSSocket._internal(webSocket));
     });
     return completer.future;
+  }
+}
+
+typedef void idCodeListener(int id, String code);
+typedef void codeListener(String code);
+
+@Injectable()
+class DailyEventBus {
+
+  static const _workItemKey = 'wi';
+  static const _teamMemberKey = 'tm';
+  static const _stopwatchKey = 'sw';
+
+  WebSocketService _webSocketService;
+  WSSocket _wsSocket;
+  Set <idCodeListener> _workItemListeners = new Set<idCodeListener>();
+  Set <codeListener> _teamMemberListeners = new Set<codeListener>();
+  Set <codeListener> _stopwatchListeners = new Set<codeListener>();
+
+  DailyEventBus(this._webSocketService) {
+    _webSocketService.connect().then((WSSocket wsSocket) {
+      _wsSocket = wsSocket;
+      _wsSocket.addListener(_dataReceived);
+      _wsSocket.joinGroup(25);
+    });
+  }
+
+  void _dataReceived(String key, Map<String, dynamic>data) {
+    if (key != null) {
+      switch (key) {
+        case _workItemKey:
+          _workItemListeners.forEach((idCodeListener listener) {
+            listener((data['id'] as int), (data['ref'] as String));
+          });
+          break;
+        case _teamMemberKey:
+          _teamMemberListeners.forEach((codeListener listener) {
+            listener((data['ref'] as String));
+          });
+          break;
+        case _stopwatchKey:
+          _stopwatchListeners.forEach((codeListener listener) {
+            listener((data['command'] as String));
+          });
+          break;
+      }
+    }
+  }
+
+  void _sendIdCodeMessage(String key, int id, String ref) {
+    _wsSocket.message({key: {"id": id, "ref": ref}});
+  }
+
+  void _sendCodeMessage(String key, String ref) {
+    _wsSocket.message({key: {"ref": ref}});
+  }
+
+  void sendWorkItemMessage(RDWorkItem workItem) {
+    if (workItem == null)
+      _wsSocket.message({_workItemKey: null});
+    else
+      _sendIdCodeMessage(_workItemKey, workItem.ID, workItem.formattedID);
+  }
+
+  void sendTeamMemberMessage(String code) {
+    _sendCodeMessage(_teamMemberKey, code);
+  }
+
+  void sendStopwatchCommandMessage(String command) {
+    _wsSocket.message({_stopwatchKey: {"command": command}});
+  }
+
+  void addWorkItemListener(idCodeListener listener) {
+    if (listener != null) {
+      _workItemListeners.add(listener);
+    }
+  }
+
+  void removeWorkItemListener(idCodeListener listener) {
+    if (listener != null) {
+      _workItemListeners.remove(listener);
+    }
+  }
+
+  void addTeamMemberListener(codeListener listener) {
+    if (listener != null) {
+      _teamMemberListeners.add(listener);
+    }
+  }
+
+  void removeTeamMemberListener(codeListener listener) {
+    if (listener != null) {
+      _teamMemberListeners.remove(listener);
+    }
+  }
+
+  void addStopwatchListener(codeListener listener) {
+    if (listener != null) {
+      _stopwatchListeners.add(listener);
+    }
+  }
+
+  void removeStopwatchListener(codeListener listener) {
+    if (listener != null) {
+      _stopwatchListeners.remove(listener);
+    }
   }
 }

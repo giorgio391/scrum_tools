@@ -27,6 +27,10 @@ class DailyForm {
   final EventEmitter<ChangeRecord<DailyEntry>> onEntryEdited = new EventEmitter<
       ChangeRecord<DailyEntry>>(false);
 
+  @Output()
+  final EventEmitter<String> onStopwatchRequest = new EventEmitter<String>(
+      false);
+
   DailyEntry _beingEdited;
   DailyEntry _model;
 
@@ -47,13 +51,14 @@ class DailyForm {
     _model =
     modelToEdit == null ?
     (_lastEditing == null ? new DailyEntry() : _lastEditing)
-            : new DailyEntry.clone(modelToEdit);
+        : new DailyEntry.clone(modelToEdit);
     _beingEdited = modelToEdit;
     _envHelper.model = _model;
   }
 
   String get teamMemberCode => model != null ? model.teamMemberCode : null;
 
+  @Input()
   void set teamMemberCode(String code) {
     if (code == null || teamMembers.contains(code)) {
       model.teamMemberCode = code;
@@ -71,6 +76,10 @@ class DailyForm {
 
   void wiKeyUp(KeyboardEvent event) {
     if (event.which == 13) checkWiCode();
+  }
+
+  void nextTeamMember() {
+    onStopwatchRequest.add('next');
   }
 
   void checkWiCode() {

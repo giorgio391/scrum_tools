@@ -1,20 +1,37 @@
 @import "../../../dev-assets/_flex";
 
-.form-container {
-  @include flexbox();
+
+.daily-form-container {
+  .daily-form-row {
+    position: relative;
+
+    .team-member-next {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+  }
+  /*@include flexbox();
   @include flex-direction(column);
 
   .form-row {
     @include flexbox();
-    @include flex-direction();
+    @include flex-direction(row);
     @include align-items(center);
     margin: 0 0 8px 0;
+    &.team-member {
+      //@include align-items(end);
+    }
+    .team-member-code {
+      //@include flex(1, 1, 0);
+    }
+    .team-member-next {
+      //@include flex(0, 0, 0);
+    }
     div {
       @include flex();
       margin: 0 5px 0 5px;
     }
-    /*select {
-      font-size: smaller;
-    }*/
   }
+  */
 }

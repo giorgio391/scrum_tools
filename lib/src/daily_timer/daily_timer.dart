@@ -4,6 +4,7 @@ import 'package:scrum_tools/src/scrum_service.dart';
 import 'package:scrum_tools/src/utils/simple_editor.dart';
 import 'package:scrum_tools/src/scrum_stopwatch/scrum_stopwatch.dart';
 import 'package:scrum_tools/src/scrum_stopwatch/stopwatch_pipe.dart';
+import 'package:scrum_tools/src/web_socket_service.dart';
 
 /// This class provides a web component to manage speaking times for a Scrum
 /// team members.
@@ -26,12 +27,15 @@ class DailyTimer implements OnInit {
 
   // Uncomment the following in the future if the child [ScrumStopwatch] must
   // be injected.
-  /*@ContentChild(ScrumStopwatch)
-  ScrumStopwatch scrumStopWatch;*/
+  /*
+  @ContentChild(ScrumStopwatch)
+  ScrumStopwatch scrumStopWatch;
+  */
 
   ScrumService _service;
+  DailyEventBus _eventBus;
 
-  DailyTimer(this._service);
+  DailyTimer(this._service, this._eventBus);
 
   MemberRecord _current;
   /// List of people pending to talk.
@@ -95,6 +99,7 @@ class DailyTimer implements OnInit {
       done.insert(0, _current);
     }
     _current = pending.length > 0 ? pending.removeAt(0) : null;
+    _eventBus.sendTeamMemberMessage(_current.name);
   }
 
   /// This is the method hooked to the _start_ event of the inner
