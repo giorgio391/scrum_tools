@@ -74,4 +74,8 @@ class Cache<K, V> {
   /// Returns the total number os cached items.
   int get count => _map.length;
 
+  /// Get the value from the cache. If it is not in the cache yet
+  /// [null] is returned.
+  V getCached(K key) => key == null ? null : _map[key];
+
 }

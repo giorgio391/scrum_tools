@@ -4,7 +4,7 @@ int _idFromUrl(String url) {
   return int.parse(url.substring(url.lastIndexOf(r'/') + 1));
 }
 
-class RDScheduleState {
+class RDScheduleState implements Comparable<RDScheduleState> {
 
   static final RDScheduleState UNDEFINED = new RDScheduleState._internal(
       'Undefined', 'U', 0);
@@ -49,12 +49,21 @@ class RDScheduleState {
 
   operator <(RDScheduleState s) => _order < s._order;
 
-  operator >=(RDScheduleState s) => _order > s._order || _order == s._order;
+  operator >=(RDScheduleState s) => _order >= s._order;
 
-  operator <=(RDScheduleState s) => _order < s._order || _order == s._order;
+  operator <=(RDScheduleState s) => _order <= s._order;
+
+  int compareTo(RDScheduleState other) {
+    return order - other.order;
+  }
+
+  @override
+  String toString() {
+    return "$abbr - $name";
+  }
 }
 
-class RDSeverity {
+class RDSeverity implements Comparable<RDSeverity> {
 
   static final RDSeverity CRASH = new RDSeverity._internal(
       'Crash/Data Loss', 5);
@@ -95,9 +104,17 @@ class RDSeverity {
 
   operator <=(RDSeverity s) => _order <= s._order;
 
+  int compareTo(RDSeverity other) {
+    return order - other.order;
+  }
+
+  @override
+  String toString() {
+    return name;
+  }
 }
 
-class RDPriority {
+class RDPriority implements Comparable<RDPriority> {
 
   static final RDPriority RESOLVE_IMMEDIATELY = new RDPriority._internal(
       'Resolve Immediately', 4);
@@ -137,9 +154,17 @@ class RDPriority {
 
   operator <=(RDPriority p) => _order <= p._order;
 
+  int compareTo(RDPriority other) {
+    return order - other.order;
+  }
+
+  @override
+  String toString() {
+    return name;
+  }
 }
 
-class RDState {
+class RDState implements Comparable<RDState> {
 
   static final RDState SUBMITTED = new RDState._internal('Submitted', 0);
   static final RDState OPEN = new RDState._internal('Open', 1);
@@ -176,6 +201,14 @@ class RDState {
 
   operator <=(RDState s) => _order <= s._order;
 
+  int compareTo(RDState other) {
+    return order - other.order;
+  }
+
+  @override
+  String toString() {
+    return name;
+  }
 }
 
 /// This is the common type for any Rallydev entity.
@@ -194,10 +227,16 @@ abstract class RDEntity {
   }
 
   operator ==(RDEntity entity) =>
-      entity != null && entity._objectID == _objectID;
+      entity != null && entity._objectID == _objectID &&
+          this.runtimeType == entity.runtimeType;
+
+  @override
+  String toString() {
+    return "${this.runtimeType} - $ID";
+  }
 }
 
-class RDIteration extends RDEntity {
+class RDIteration extends RDEntity implements Comparable<RDIteration> {
 
   String _name, _state;
   DateTime _creationDate, _startDate, _endDate;
@@ -231,6 +270,29 @@ class RDIteration extends RDEntity {
     _planEstimate = map['PlanEstimate'];
     _plannedVelocity = map['PlannedVelocity'];
   }
+
+  operator >(RDIteration other) =>
+      startDate != null && other.endDate != null &&
+          (startDate.isAfter(other.endDate) || startDate == other.endDate);
+
+  operator <(RDIteration other) =>
+      endDate != null && other.startDate != null &&
+          (endDate.isBefore(other.startDate) || endDate == other.startDate);
+
+  operator >=(RDIteration other) => objectID == other.objectID || this > other;
+
+  operator <=(RDIteration other) => objectID == other.objectID || this < other;
+
+  int compareTo(RDIteration other) {
+    if (this < other) return -1;
+    if (this > other) return 1;
+    return 0;
+  }
+
+  @override
+  String toString() {
+    return "${super.toString()} - $name";
+  }
 }
 
 
@@ -241,6 +303,11 @@ class RDProject extends RDEntity {
   String get name => _name;
 
   RDProject.DTO(int id, this._name) : super._internal(id);
+
+  @override
+  String toString() {
+    return "${super.toString()} - $name";
+  }
 }
 
 /// Objects of this class represents Rallydev users.
@@ -260,6 +327,11 @@ class RDUser extends RDEntity {
     _userName = map['UserName'];
     _displayName = map['DisplayName'];
     _emailAddress = map['EmailAddress'];
+  }
+
+  @override
+  String toString() {
+    return "${super.toString()} - $displayName";
   }
 }
 
@@ -345,6 +417,12 @@ abstract class RDWorkItem extends RDEntity {
     _planEstimate = map['PlanEstimate'];
     _expedite = map['Expedite'];
   }
+
+  @override
+  String toString() {
+    return "${super.toString()} - $formattedID";
+  }
+
 }
 
 class RDDefect extends RDWorkItem {
@@ -387,4 +465,16 @@ class RDPortfolioItem extends RDWorkItem {
       : super._internalFromMap(map) {
   }
 
+}
+
+
+void main(List<String> args) {
+  // To test
+  RDIteration ite1 = new RDIteration._internal(555, "Ite1");
+  RDIteration ite2 = new RDIteration._internal(555, "Ite2");
+
+  RDProject pro1 = new RDProject.DTO(555, "Pro1");
+
+  assert(ite1 == ite2);
+  assert(ite1 != pro1);
 }

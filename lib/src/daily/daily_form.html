@@ -1,0 +1,92 @@
+<form (ngSubmit)="onSubmit()" #dailyEntryForm="ngForm">
+    <div class="form-container">
+        <div class="form-row">
+            <div class="form-group" [class.has-error]="!teamMember.valid">
+                <label for="teamMember">Team member</label>
+                <select #teamMember="ngForm" class="form-control" id="teamMember" required
+                        [(ngModel)]="teamMemberCode" ngControl="teamMember">
+                    <option [ngValue]="null">-None-</option>
+                    <option *ngFor="let teamMember of teamMembers" [ngValue]="teamMember">{{teamMember}}</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="process">Process</label>
+                <select class="form-control" id="process" required
+                        [(ngModel)]="model.process" ngControl="process">
+                    <option *ngFor="let process of processes" [ngValue]="process">{{process.value}}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="scope">Scope</label>
+                <select class="form-control" id="scope" required
+                        [(ngModel)]="model.scope" ngControl="scope">
+                    <option *ngFor="let scope of scopes" [ngValue]="scope">{{scope.value}}</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" [class.has-error]="!wiControl.valid">
+                <label for="workItemRef">Work item reference</label>
+                <input #wiControl="ngForm" pattern="(^DE[0-9][0-9][0-9][0-9]$)|(^US[0-9][0-9][0-9][0-9][0-9]$)"
+                       type="text" class="form-control" id="workItemRef" placeholder="Work item reference..."
+                       title="Reference of the work item." ngControl="workItem"
+                       (keyup.enter)="wiKeyUp($event)" (blur)="checkWiCode()" [(ngModel)]="model.workItemCode"/>
+            </div>
+            <div class="form-check">
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" [(ngModel)]="model.workItemPending"
+                           ngControl="workItemPending">
+                    Work item pending
+                </label>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group status">
+                <label for="status">Status</label>
+                <select class="form-control" id="status" required
+                        [(ngModel)]="model.status" ngControl="status">
+                    <option *ngFor="let status of statuses" [ngValue]="status">{{status.value}}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" [(ngModel)]="env.QA" ngControl="QA">&nbsp;QA
+                </label>
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" [(ngModel)]="env.UAT" ngControl="UAT">&nbsp;UAT
+                </label>
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" [(ngModel)]="env.PRE" ngControl="PRE">&nbsp;PRE
+                </label>
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input" [(ngModel)]="env.PRO" ngControl="PRO">&nbsp;PRO
+                </label>
+            </div>
+            <div class="form-group" [class.has-error]="!hoursControl.valid">
+                <label for="hours">Hours</label>
+                <input #hoursControl="ngForm" ngControl="hours"
+                       type="number" step="0.25" class="form-control" id="hours"
+                       placeholder="{{pastScope ? 'Hours spent' : 'Pending hours'}}..."
+                       title="Ideal hours {{pastScope ? 'spent' : 'already to spend'}}." [(ngModel)]="model.hours"
+                       (keyup.enter)="normalizeHours(hoursControl.value)"
+                       (blur)="normalizeHours(hoursControl.value)"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <input type="text" class="form-control" id="notes" placeholder="Notes..." maxlength="254"
+                   title="Notes." [(ngModel)]="model.notes" ngControl="notes"/>
+        </div>
+        <div class="form-group">
+            <label for="statement">Statement</label>
+            <input type="text" class="form-control" id="statement" placeholder="Statement..." maxlength="254"
+                   title="Statement." [(ngModel)]="model.statement" ngControl="statement"/>
+        </div>
+        <button title="{{editing ? 'Save entry with current edited values.' : 'Add a new entry.'}}"
+                type="submit" class="btn btn-default" title="Submit values." [disabled]="!dailyEntryForm.form.valid">
+            {{editing ? 'Save' : 'Add'}}
+        </button>
+    </div>
+</form>

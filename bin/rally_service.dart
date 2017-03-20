@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:scrum_tools/utils/cache.dart';
+import 'package:scrum_tools/src/utils/cache.dart';
 
 typedef Future<Map<String, dynamic>> JSONFetcher(Uri uri);
 
@@ -122,7 +122,7 @@ void main(List<String> args) { // For test
   // darellano -> 55307558173
   // jmurcia -> 55503987479
 
-  RallydevService service = new RallydevService();
+  /*RallydevService service = new RallydevService();
   service.initialize();
   service.users.get(55503987479).then((User user) {
     print(user.ID);
@@ -132,4 +132,13 @@ void main(List<String> args) { // For test
       print(user.ID);
     });
   });
+  */
+
+  String s = 'wi:{"id":96809681196,"ref":"US19723"}';
+  int i = s.indexOf(r":");
+  String key = s.substring(0, i);
+  print(key);
+  String o = s.substring(i+1);
+  var v = JSON.decode(o);
+  print(v);
 }

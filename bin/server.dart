@@ -6,8 +6,7 @@ import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 import 'package:prompt/prompt.dart';
 import 'package:start/start.dart';
-import 'package:scrum_tools/utils/cache.dart';
-
+import 'package:scrum_tools/src/utils/cache.dart';
 
 const webDirArg = 'web-dir';
 const hostArg = 'host';
@@ -246,7 +245,9 @@ class _Group {
       group._add(socket);
       return group;
     }
-    return new _Group._internal(socket, id);
+    _Group newGroup = new _Group._internal(socket, id);
+    _groups[id] = newGroup;
+    return newGroup;
   }
 
   _Group._internal(Socket socket, this._id) {

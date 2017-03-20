@@ -15,7 +15,8 @@ class ScrumService {
       completer = new Completer();
       HttpRequest.getString('scrum_config.json').then((String json) {
         Map values = JSON.decode(json);
-        ScrumConfig config = new ScrumConfig()..teamMemberNames = values['team'];
+        ScrumConfig config = new ScrumConfig()
+          ..teamMemberNames = new List.unmodifiable(values['team'] as List);
         completer.complete(config);
       });
     }

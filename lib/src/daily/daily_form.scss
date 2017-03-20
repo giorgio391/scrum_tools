@@ -1,0 +1,20 @@
+@import "../../../dev-assets/_flex";
+
+.form-container {
+  @include flexbox();
+  @include flex-direction(column);
+
+  .form-row {
+    @include flexbox();
+    @include flex-direction();
+    @include align-items(center);
+    margin: 0 0 8px 0;
+    div {
+      @include flex();
+      margin: 0 5px 0 5px;
+    }
+    /*select {
+      font-size: smaller;
+    }*/
+  }
+}

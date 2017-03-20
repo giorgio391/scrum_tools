@@ -1,0 +1,50 @@
+@import "../../../dev-assets/_flex";
+@import "../../../dev-assets/_rd-elements";
+
+.daily-reporter {
+  @include flexbox();
+  height: 100%;
+  font-size: smaller;
+  .entry-form {
+    width: 375px;
+    margin-right: 10px;
+  }
+  .main {
+    @include flexbox();
+    @include flex-direction(column);
+    @include flex(1, 1, 0);
+    .header {
+      @include box-shadow(5px, 5px, 30px, -7px, $rd-color-shadow);
+      padding: 5px;
+    }
+    .body {
+      @include flexbox();
+      @include flex-direction(column);
+      @include flex(1, 1, 0);
+      //padding-left: 25px;
+      //margin-left: 10px;
+      margin-top: 12px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      .no-entry {
+        @include flexbox();
+        @include flex-direction(column);
+        @include flex(1, 1, 0);
+        @include justify-content(center);
+        div {
+          text-align: center;
+        }
+      }
+      .entries {
+        .daily-entry-row {
+          &.even {
+            background: lightgray;
+          }
+          &.selected {
+            background: lightblue;
+          }
+        }
+      }
+    }
+  }
+}

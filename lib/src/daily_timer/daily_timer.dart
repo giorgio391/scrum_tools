@@ -1,9 +1,9 @@
 import 'package:angular2/core.dart';
 
-import '../scrum_service.dart';
-import '../scrum_stopwatch/scrum_stopwatch.dart';
-import '../scrum_stopwatch/stopwatch_pipe.dart';
-import '../utils/simple_editor.dart';
+import 'package:scrum_tools/src/scrum_service.dart';
+import 'package:scrum_tools/src/utils/simple_editor.dart';
+import 'package:scrum_tools/src/scrum_stopwatch/scrum_stopwatch.dart';
+import 'package:scrum_tools/src/scrum_stopwatch/stopwatch_pipe.dart';
 
 /// This class provides a web component to manage speaking times for a Scrum
 /// team members.

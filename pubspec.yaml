@@ -17,6 +17,6 @@ transformers:
     - 'package:angular2/common.dart#COMMON_DIRECTIVES'
     platform_pipes:
     - 'package:angular2/common.dart#COMMON_PIPES'
-    entry_points: web/main.dart
+    entry_points: [web/daily1.dart, web/daily2.dart]
     $exclude: web/font-awesome-4.7.0
 - dart_to_js_script_rewriter

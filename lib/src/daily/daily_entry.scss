@@ -1,0 +1,70 @@
+@import "../../../dev-assets/_flex";
+@import "../../../dev-assets/rd-elements";
+
+.daily-entry {
+  //border-bottom: 1px solid;
+  margin: 2px 0 2px 2px;
+  padding: 2px 0 4px 0;
+  @include flexbox();
+  @include flex-direction(column);
+  .entry-row-1 {
+    @include flexbox();
+    @include flex-direction(row);
+    .process {
+      width: 100px;
+    }
+    .scope {
+      width: 55px;
+      color: white;
+      background: #868686;
+      @include rounded(4px);
+      padding: 2px 4px 0 4px;
+      font-size: smaller;
+      font-weight: bold;
+      text-align: center;
+      margin-right: 5px;
+    }
+    .process {
+      width: 100px;
+    }
+    .teamMemberCode {
+      @include flex(1,1,0);
+      color: royalblue;
+      font-weight: bold;
+    }
+    .workItemCode {
+      width: 60px;
+    }
+    .status {
+      width: 80px;
+    }
+    .hours {
+      width: 30px;
+      text-align: right;
+      margin-right: 8px;
+    }
+  }
+  .entry-row-2 {
+    @include flexbox();
+    @include flex-direction(row);
+    .workItemName {
+      @include flex(1,1,0);
+      font-style: italic;
+      color: #868686;
+    }
+    .environments {
+      @include flexbox();
+      @include flex-direction(row);
+      @include flex-wrap(nowrap);
+      @include justify-content(end);
+      @include align-items(center);
+      div {
+        @include rounded(4px);
+        color: white;
+        background: royalblue;
+        margin-right: 2px;
+        padding: 2px 4px 0 4px;
+      }
+    }
+  }
+}

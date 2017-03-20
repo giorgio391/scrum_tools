@@ -1,0 +1,26 @@
+<div class="daily-reporter" (keyup)="keyUp($event)">
+    <div class="entry-form">
+        <daily-form
+                [model]="onEditing"
+                (onEntryEdited)="entryEdited($event)"
+                (workItemCodeChange)="workItemCode=$event">
+        </daily-form>
+    </div>
+    <div class="main">
+        <div class="header">
+            <div>{{workItemCode}}&nbsp;{{currentWorkItem?.name}}</div>
+            <div>{{receivedData}}</div>
+        </div>
+        <div class="body">
+            <div *ngIf="!hasEntries" class="no-entry"><div>No entry.</div></div>
+            <div *ngIf="hasEntries" class="entries" (keyup)="listKeyUp($event)" tabindex="1">
+                <div class="daily-entry-row" [class.selected]="isSelected(entry)" [class.on-edit]="isOnEdit(entry)"
+                     [class.even]="evenEntry" [class.odd]="oddEntry"
+                     *ngFor="let entry of entries; let oddEntry=odd; let evenEntry=even;"
+                     (click)="entryClick(entry, $event)" (dblclick)="startEditing(entry)">
+                    <daily-entry [entry]="entry"></daily-entry>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

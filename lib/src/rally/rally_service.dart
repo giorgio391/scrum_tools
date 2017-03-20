@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:html';
 
 import 'package:angular2/core.dart';
-import 'package:scrum_tools/utils/cache.dart';
+import 'package:scrum_tools/src/utils/cache.dart';
 import 'package:scrum_tools/src/runtime_service.dart';
 
 import 'rally_entities.dart';
@@ -21,24 +21,22 @@ class RallyService {
 
   Cache<int, RDIteration> _iterationsCache;
   Cache<String, RDUser> _usersCache;
-  Cache<String, RDDefect> _defectsCache;
-  Cache<String, RDHierarchicalRequirement> _hierarchicalRequirementCache;
+  Cache<String, int> _workItemCodesCache;
+  Cache<int, RDDefect> _defectsCache;
+  Cache<int, RDHierarchicalRequirement> _hierarchicalRequirementCache;
   Cache<String, RDPortfolioItem> _portfolioItemCache;
   RDIteration _currentIteration;
 
   RallyService(RuntimeService runtimeService) {
-    assert(() {
-      return true;
-    });
-
     _pathRoot =
-    runtimeService.debugMode ? _pathRoot = 'http://localhost:3000/rd' : '/rd';
+    runtimeService.debugMode ? 'http://localhost:3000/rd' : '/rd';
 
     _iterationsCache = new Cache<int, RDIteration>.ready(_iterationRetriever);
     _usersCache = new Cache<String, RDUser>.ready(_userRetriever);
-    _defectsCache = new Cache<String, RDDefect>.ready(_defectRetriever);
+    _workItemCodesCache = new Cache<String, int>.ready(getWorkItemID);
+    _defectsCache = new Cache<int, RDDefect>.ready(_defectRetriever);
     _hierarchicalRequirementCache =
-    new Cache<String, RDHierarchicalRequirement>.ready(
+    new Cache<int, RDHierarchicalRequirement>.ready(
         _hierarchicalRequirementRetriever);
     _portfolioItemCache =
     new Cache<String, RDPortfolioItem>.ready(_portfolioItemRetriever);
@@ -51,6 +49,19 @@ class RallyService {
     _hierarchicalRequirementCache.clearCache();
     _portfolioItemCache.clearCache();
     _currentIteration = null;
+    _workItemCodesCache.clearCache();
+  }
+
+  Future clearWorkItemCache(String key) {
+    Completer completer = new Completer();
+    getWorkItemID(key).then((int id) {
+      if (key.startsWith('DE')) _defectsCache.clearItem(id);
+      else _hierarchicalRequirementCache.clearItem(id);
+      completer.complete();
+    }).catchError((error) {
+      completer.complete(error);
+    });
+    return completer.future;
   }
 
   Future<RDIteration> getIteration(int id) {
@@ -60,7 +71,9 @@ class RallyService {
   Future<RDIteration> get currentIteration {
     if (_currentIteration == null) {
       Completer<RDIteration> completer = new Completer<RDIteration>();
-      _genericIDRetriever('iteration', '(Project.ObjectID = ${_projectId}) AND ((StartDate <= today) AND (EndDate >= today))').then((int id) {
+      _genericIDRetriever('iteration',
+          '(Project.ObjectID = ${_projectId}) AND ((StartDate <= today) AND (EndDate >= today))')
+          .then((int id) {
         getIteration(id).then((RDIteration iteration) {
           _currentIteration = iteration;
           completer.complete(iteration);
@@ -92,12 +105,56 @@ class RallyService {
       ..completeError("Key [$key] does not match a valid pattern!")).future;
   }
 
+  RDWorkItem getCachedWorkItem(String key) {
+    if (key != null) {
+      int id = _workItemCodesCache.getCached(key);
+      if (id != null) {
+        if (_defectRegExp.hasMatch(key)) {
+          return _defectsCache.getCached(id);
+        }
+        if (_hierarchicalRequirementRegExp.hasMatch(key)) {
+          return _hierarchicalRequirementCache.getCached(id);
+        }
+      }
+    }
+    return null;
+  }
+
   Future<RDDefect> getDefect(String key) {
-    return _defectsCache.get(key);
+    Completer<RDDefect> completer = new Completer<RDDefect>();
+    _workItemCodesCache.get(key).then((int id) {
+      getDefectById(id).then((RDDefect wi) {
+        completer.complete(wi);
+      }).catchError((error) {
+        completer.completeError(error);
+      });
+    }).catchError((error) {
+      completer.completeError(error);
+    });
+    return completer.future;
+  }
+
+  Future<RDDefect> getDefectById(int id) {
+    return _defectsCache.get(id);
   }
 
   Future<RDHierarchicalRequirement> getHierarchicalRequirement(String key) {
-    return _hierarchicalRequirementCache.get(key);
+    Completer<RDHierarchicalRequirement> completer = new Completer<
+        RDHierarchicalRequirement>();
+    _workItemCodesCache.get(key).then((int id) {
+      getHierarchicalRequirementById(id).then((RDHierarchicalRequirement wi) {
+        completer.complete(wi);
+      }).catchError((error) {
+        completer.completeError(error);
+      });
+    }).catchError((error) {
+      completer.completeError(error);
+    });
+    return completer.future;
+  }
+
+  Future<RDHierarchicalRequirement> getHierarchicalRequirementById(int id) {
+    return _hierarchicalRequirementCache.get(id);
   }
 
   Future<RDPortfolioItem> getPortfolioItem(String key) {
@@ -147,6 +204,24 @@ class RallyService {
     return _genericIDRetriever(name, "FormattedID%20=%20${key}");
   }
 
+  Future<int> getWorkItemID(String key) {
+    Completer<int> completer = new Completer<int>();
+    if (key != null && (key.startsWith('US') || key.startsWith('DE'))) {
+      _idRetrieverByKey(
+          key.startsWith('US') ? 'hierarchicalrequirement' : 'defect', key)
+          .then((int id) {
+        completer.complete(id);
+      }).catchError((error) {
+        _handleError(completer, error);
+      });
+    } else {
+      completer.completeError('The key [${key == null
+          ? 'null'
+          : key}] is not valid for a work item.');
+    }
+    return completer.future;
+  }
+
   Future<Map<String, dynamic>> _entityMapRetriever(String name, int id) {
     Completer<Map<String, dynamic>> completer = new Completer<
         Map<String, dynamic>>();
@@ -160,35 +235,26 @@ class RallyService {
     return completer.future;
   }
 
-  Future<RDDefect> _defectRetriever(String key) {
+  Future<RDDefect> _defectRetriever(int id) {
     Completer<RDDefect> completer = new Completer<RDDefect>();
-    _idRetrieverByKey('defect', key).then((int id) {
-      _entityMapRetriever('defect', id).then((Map<String, dynamic> map) {
-        RDDefect value = new RDDefect.fromMap(map['Defect']);
-        completer.complete(value);
-      }).catchError((error) {
-        _handleError(completer, error);
-      });
+    _entityMapRetriever('defect', id).then((Map<String, dynamic> map) {
+      RDDefect value = new RDDefect.fromMap(map['Defect']);
+      completer.complete(value);
     }).catchError((error) {
       _handleError(completer, error);
     });
     return completer.future;
   }
 
-  Future<RDHierarchicalRequirement> _hierarchicalRequirementRetriever(
-      String key) {
+  Future<RDHierarchicalRequirement> _hierarchicalRequirementRetriever(int id) {
     Completer<RDHierarchicalRequirement> completer = new Completer<
         RDHierarchicalRequirement>();
-    _idRetrieverByKey('hierarchicalrequirement', key).then((int id) {
-      _entityMapRetriever('hierarchicalrequirement', id).then((
-          Map<String, dynamic> map) {
-        Map<String, dynamic> sub = map['HierarchicalRequirement'];
-        RDHierarchicalRequirement value = new RDHierarchicalRequirement.fromMap(
-            sub);
-        completer.complete(value);
-      }).catchError((error) {
-        _handleError(completer, error);
-      });
+    _entityMapRetriever('hierarchicalrequirement', id).then((
+        Map<String, dynamic> map) {
+      Map<String, dynamic> sub = map['HierarchicalRequirement'];
+      RDHierarchicalRequirement value = new RDHierarchicalRequirement.fromMap(
+          sub);
+      completer.complete(value);
     }).catchError((error) {
       _handleError(completer, error);
     });
