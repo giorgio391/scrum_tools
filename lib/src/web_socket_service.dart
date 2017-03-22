@@ -111,7 +111,9 @@ class WebSocketService {
   String _connectUrl;
 
   WebSocketService(RuntimeService runtimeService) {
-    _connectUrl = runtimeService.debugMode ? 'ws://localhost:3000/ws' : '/ws';
+    _connectUrl =
+    runtimeService.debugMode ? 'ws://localhost:3000/ws' : runtimeService
+        .contextUri('/ws', 'ws');
   }
 
   Future<WSSocket> connect() {
@@ -125,6 +127,7 @@ class WebSocketService {
 }
 
 typedef void idCodeListener(int id, String code);
+
 typedef void codeListener(String code);
 
 @Injectable()

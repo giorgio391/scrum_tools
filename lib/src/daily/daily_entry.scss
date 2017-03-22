@@ -3,8 +3,8 @@
 
 .daily-entry {
   //border-bottom: 1px solid;
-  margin: 2px 0 2px 2px;
-  padding: 2px 0 4px 0;
+  margin: 0 0 2px 2px;
+  padding: 4px 0 2px 0;
   @include flexbox();
   @include flex-direction(column);
   .entry-row-1 {
@@ -26,6 +26,8 @@
     }
     .process {
       width: 100px;
+      margin-right: 5px;
+      text-align: left;
     }
     .teamMemberCode {
       @include flex(1,1,0);
@@ -33,7 +35,17 @@
       font-weight: bold;
     }
     .workItemCode {
-      width: 60px;
+      width: 70px;
+      background: midnightblue;
+      color: white;
+      font-weight: bold;
+      margin: 0 5px 0 5px;
+      @include rounded(4px);
+      text-align: center;
+      padding-top: 1px;
+      &.wi-pending {
+        background: red;
+      }
     }
     .status {
       width: 80px;

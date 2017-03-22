@@ -29,7 +29,8 @@ class RallyService {
 
   RallyService(RuntimeService runtimeService) {
     _pathRoot =
-    runtimeService.debugMode ? 'http://localhost:3000/rd' : '/rd';
+    runtimeService.debugMode ? 'http://localhost:3000/rd' :
+    runtimeService.contextUri('/rd');
 
     _iterationsCache = new Cache<int, RDIteration>.ready(_iterationRetriever);
     _usersCache = new Cache<String, RDUser>.ready(_userRetriever);
@@ -55,8 +56,10 @@ class RallyService {
   Future clearWorkItemCache(String key) {
     Completer completer = new Completer();
     getWorkItemID(key).then((int id) {
-      if (key.startsWith('DE')) _defectsCache.clearItem(id);
-      else _hierarchicalRequirementCache.clearItem(id);
+      if (key.startsWith('DE'))
+        _defectsCache.clearItem(id);
+      else
+        _hierarchicalRequirementCache.clearItem(id);
       completer.complete();
     }).catchError((error) {
       completer.complete(error);

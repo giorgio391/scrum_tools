@@ -49,9 +49,8 @@ class DailyForm {
   @Input()
   void set model(DailyEntry modelToEdit) {
     _model =
-    modelToEdit == null ?
-    (_lastEditing == null ? new DailyEntry() : _lastEditing)
-        : new DailyEntry.clone(modelToEdit);
+    modelToEdit != null ? new DailyEntry.clone(modelToEdit) :
+    (_lastEditing != null ? _lastEditing : new DailyEntry());
     _beingEdited = modelToEdit;
     _envHelper.model = _model;
   }
@@ -104,17 +103,23 @@ class DailyForm {
   }
 
   void onSubmit() {
-    ChangeRecord changeRecord = new ChangeRecord(_beingEdited, _model);
-    model = null;
-    _lastEditing = new DailyEntry.clone(changeRecord.newValue);
+    ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
+        _beingEdited, _model);
+    _lastEditing = changeRecord.newValue != null ? new DailyEntry() : null;
     if (_lastEditing != null) {
-      _lastEditing.environments = null;
-      _lastEditing.hours = null;
-      _lastEditing.notes = null;
-      _lastEditing.statement = null;
-      _lastEditing.workItemCode = null;
+      _lastEditing.teamMemberCode = changeRecord.newValue.teamMemberCode;
+      _lastEditing.process= changeRecord.newValue.process;
+      _lastEditing.scope = changeRecord.newValue.scope;
     }
+    model = null;
     onEntryEdited.add(changeRecord);
+  }
+
+  void cancel() {
+    ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
+        _beingEdited, null);
+    onEntryEdited.add(changeRecord);
+    model = null;
   }
 
   bool get pastScope =>

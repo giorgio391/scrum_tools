@@ -95,8 +95,12 @@
             </div>
         </div>
         <div class="daily-form-row row">
-            <div class="col-md-10"></div>
-            <div class="col-md-2">
+            <div class="form-group col-md-6"></div>
+            <div class="form-group col-md-3">
+                <button title="Cancel the edition." *ngIf="editing" (click)="cancel()"
+                        type="button" class="btn btn-default">Cancel</button>
+            </div>
+            <div class="form-group col-md-2">
                 <button title="{{editing ? 'Save entry with current edited values.' : 'Add a new entry.'}}"
                         type="submit" class="btn btn-default" [disabled]="!dailyEntryForm.form.valid">
                     {{editing ? 'Save' : 'Add'}}

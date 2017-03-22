@@ -37,14 +37,32 @@
       }
       .entries {
         .daily-entry-row {
+          @include flexbox();
+          @include flex-direction(row);
+          border-bottom: 1px solid lightgray;
+          /*
           &.even {
             background: lightgray;
           }
+          */
           &.selected {
             background: lightblue;
           }
+          .marker {
+            //@include flex(0,0,20);
+            text-align: left;
+            width: 10px;
+            padding-top: 3px;
+          }
+          .entry-data {
+            @include flex(1,1,0);
+            width: 20px;
+          }
         }
       }
+    }
+    .footer {
+      text-align: right;
     }
   }
 }

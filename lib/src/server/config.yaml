@@ -1,0 +1,5 @@
+mailer:
+  host: posteio.emergya.com
+  user: team-green@servicios.emergya.com
+  pass: j43vDvgT6g
+  secured: true

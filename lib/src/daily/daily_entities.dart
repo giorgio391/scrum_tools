@@ -1,3 +1,5 @@
+import 'package:scrum_tools/src/utils/helpers.dart';
+
 class Environment implements Comparable<Environment> {
 
   static final LOCAL = new Environment._internal('LOCAL', 0);
@@ -168,7 +170,7 @@ class Status implements Comparable<Status> {
   }
 }
 
-class DailyEntry {
+class DailyEntry implements Mappable {
 
   Process process = Process.DEVELOPMENT;
   Scope scope = Scope.PAST;
@@ -264,7 +266,7 @@ class DailyEntry {
   }
 }
 
-class TimeReportEntry {
+class TimeReportEntry implements Mappable {
   DateTime startTime;
   Duration netDuration;
   Duration grossDuration;
@@ -301,7 +303,9 @@ class TimeReportEntry {
   }
 }
 
-class TimeReport {
+class TimeReport implements MappableWithDate {
+
+  DateTime _date;
 
   List<TimeReportEntry> _entries;
 
@@ -309,11 +313,17 @@ class TimeReport {
 
   Duration _total;
 
+  DateTime get date => _date;
+
   TimeReport(Iterable<TimeReportEntry> entries) {
     _entries = new List.unmodifiable(entries);
   }
 
   factory TimeReport.fromMap(Map<String, Object> map) {
+    return buildFromMap(map);
+  }
+
+  static TimeReport buildFromMap(Map<String, Object> map) {
     if (map != null) {
       List<Map<String, Object>> entryMaps = map['entries'];
       if (entryMaps != null && entryMaps.length > 0) {
@@ -321,7 +331,8 @@ class TimeReport {
         entryMaps.forEach((Map<String, Object> entryMap) {
           entries.add(new TimeReportEntry.fromMap(entryMap));
         });
-        return new TimeReport(entries);
+        return new TimeReport(entries)
+          .._date = map['date'] == null ? null : DateTime.parse(map['date']);
       }
     }
     return null;
@@ -343,6 +354,7 @@ class TimeReport {
 
   Map<String, Object> toMap() {
     Map<String, Object> map = {};
+    if (date != null) map['date'] = date.toIso8601String();
     if (_entries != null && _entries.length > 0) {
       List<Map<String, Object>> entryMaps = [];
       _entries.forEach((TimeReportEntry entry) {
@@ -354,16 +366,22 @@ class TimeReport {
   }
 }
 
-class DailyReport {
-  DateTime date;
-  TimeReport timeReport;
+class DailyReport implements MappableWithDate {
+
+  DateTime _date;
   List<DailyEntry> _entries;
 
   Iterable<DailyEntry> get entries => _entries;
+  DateTime get date => _date;
 
-  DailyReport();
+  DailyReport(this._date, this._entries);
+  DailyReport._internal();
 
   factory DailyReport.fromMap(Map<String, Object> map) {
+    return buildFromMap(map);
+  }
+
+  static DailyReport buildFromMap(Map<String, Object> map) {
     if (map != null) {
       Function createEntries = (Iterable<Map<String, Object>> entryMaps) {
         if (entryMaps != null && entryMaps.length > 0) {
@@ -375,9 +393,8 @@ class DailyReport {
         }
         return null;
       };
-      return new DailyReport()
-        ..date = map['date'] == null ? null : DateTime.parse(map['date'])
-        ..timeReport = new TimeReport.fromMap(map['timeReport'])
+      return new DailyReport._internal()
+        .._date = map['date'] == null ? null : DateTime.parse(map['date'])
         .._entries = createEntries(map['entries']);
     }
     return null;
@@ -390,7 +407,6 @@ class DailyReport {
   Map<String, Object> toMap() {
     Map<String, Object> map = {};
     if (date != null) map['date'] = date.toIso8601String();
-    if (timeReport != null) map['timeReport'] = timeReport.toMap();
     if (_entries != null && _entries.length > 0) {
       List<Map<String, Object>> entryMaps = [];
       _entries.forEach((DailyEntry entry) {

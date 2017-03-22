@@ -13,15 +13,23 @@
             <div>{{workItemCode}}&nbsp;{{currentWorkItem?.name}}</div>
         </div>
         <div class="body">
-            <div *ngIf="!hasEntries" class="no-entry"><div>No entry.</div></div>
+            <div *ngIf="!hasEntries" class="no-entry">
+                <div>No entry.</div>
+            </div>
             <div *ngIf="hasEntries" class="entries" (keyup)="listKeyUp($event)" tabindex="1">
                 <div class="daily-entry-row" [class.selected]="isSelected(entry)" [class.on-edit]="isOnEdit(entry)"
                      [class.even]="evenEntry" [class.odd]="oddEntry"
                      *ngFor="let entry of entries; let oddEntry=odd; let evenEntry=even;"
-                     (click)="entryClick(entry, $event)" (dblclick)="startEditing(entry)">
-                    <daily-entry [entry]="entry"></daily-entry>
+                     (click)="entryClick(entry, $event)" (dblclick)="entryDblClick(entry, $event)">
+                    <div class="marker"><span *ngIf="isOnEdit(entry)">&gt;</span></div>
+                    <div class="entry-data">
+                        <daily-entry [entry]="entry"></daily-entry>
+                    </div>
                 </div>
             </div>
+        </div>
+        <div class="footer">
+            <button type="button" (click)="save()">Save</button>
         </div>
     </div>
 </div>

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:html';
 import 'package:angular2/core.dart';
 import 'package:scrum_tools/src/rally/rally_service.dart';
@@ -8,12 +9,19 @@ import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/daily/daily_entry.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command.dart';
+import 'package:scrum_tools/src/rest_service.dart';
 
 @Component(selector: 'daily-reporter',
     templateUrl: 'daily_reporter.html',
     styleUrls: const['daily_reporter.css'],
     directives: const [DailyForm, DailyEntryView],
-    providers: const [RallyService, DailyEventBus, WebSocketService, CommandsService]
+    providers: const [
+      RallyService,
+      DailyEventBus,
+      WebSocketService,
+      CommandsService,
+      RestService
+    ]
 )
 class DailyReporter {
 
@@ -21,6 +29,7 @@ class DailyReporter {
   RallyService _rallyService;
   RDWorkItem _currentWorkItem;
   CommandsService _commands;
+  RestService _restService;
 
   RDWorkItem get currentWorkItem => _currentWorkItem;
 
@@ -37,7 +46,10 @@ class DailyReporter {
   String get workItemCode =>
       _currentWorkItem == null ? null : _currentWorkItem.formattedID;
 
-  DailyReporter(this._rallyService, this._eventBus, this._commands) {
+  bool get hasEntries => entries != null && entries.isNotEmpty;
+
+  DailyReporter(this._rallyService, this._eventBus, this._commands,
+      this._restService) {
     _eventBus.addTeamMemberListener(teamMemberCodeReceived);
   }
 
@@ -65,11 +77,19 @@ class DailyReporter {
   }
 
   void entryClick(DailyEntry entry, MouseEvent event) {
-    if (event.ctrlKey || event.shiftKey) {
-      toggleSelected(entry);
+    if (event.button == 0) {
+      if (event.ctrlKey || event.shiftKey) {
+        toggleSelected(entry);
+      } else {
+        setSelection(entry);
+      }
     } else {
-      setSelection(entry);
+      startEditing(entry);
     }
+  }
+
+  void entryDblClick(DailyEntry entry, MouseEvent event) {
+    startEditing(entry);
   }
 
   void startEditing(DailyEntry entry) {
@@ -141,7 +161,19 @@ class DailyReporter {
     }
   }
 
-  bool get hasEntries => entries != null && entries.isNotEmpty;
+  void save() {
+    // TODO
+    List l = [];
+    entries.forEach((DailyEntry entry) {
+      l.add(entry.toMap());
+    });
+    JsonEncoder encoder = new JsonEncoder.withIndent('  ');
+    String s = encoder.convert(l);
+    print(s);
+    // TODO
+    DailyReport report = new DailyReport(new DateTime.now(), entries);
+    _restService.saveDaily(report);
+  }
 }
 
 class _AddCommand implements Command {

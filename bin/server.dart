@@ -7,6 +7,8 @@ import 'package:logging/logging.dart';
 import 'package:prompt/prompt.dart';
 import 'package:start/start.dart';
 import 'package:scrum_tools/src/utils/cache.dart';
+import 'package:scrum_tools/src/server/config.dart';
+import 'package:scrum_tools/src/server/rest/rest_server.dart';
 
 const webDirArg = 'web-dir';
 const hostArg = 'host';
@@ -16,6 +18,7 @@ const helpArg = 'help';
 const rdProxyArg = 'rd-proxy';
 const rdUserArg = 'rd-user';
 const rdPassArg = 'rd-pass';
+const restArg = 'rest';
 
 typedef void ServerInitializer(Server appServer);
 
@@ -62,8 +65,13 @@ Future main(List<String> arguments) async {
     )
     ..addFlag(rdProxyArg, abbr: 'r',
         help: 'Starts the Rallydev proxy service.')
-    ..addOption(rdUserArg, help: 'Username to be used to connect to Rallydev.')
-    ..addOption(rdPassArg, help: 'Password of the user to be used to connect to Rallydev.');
+    ..addOption(rdUserArg,
+        help: 'Username to be used to connect to Rallydev.')..addOption(
+        rdPassArg,
+        help: 'Password of the user to be used to connect to Rallydev.')
+    ..addFlag(restArg, abbr: 'f',
+        help: 'Starts the restful service.')
+  ;
   ArgResults argResults = () {
     try {
       return argParser.parse(arguments);
@@ -134,16 +142,24 @@ Future main(List<String> arguments) async {
       if (argResults[rdUserArg] == null) {
         return askSync(new Question('Username for Rallydev'));
       }
-     return argResults[rdUserArg];
+      return argResults[rdUserArg];
     }();
     String pass = () {
       if (argResults[rdPassArg] == null) {
-        return askSync(new Question('[${argResults[rdUserArg]}] password', secret: true));
+        return askSync(
+            new Question('[${argResults[rdUserArg]}] password', secret: true));
       }
       return argResults[rdPassArg];
     }();
     _RDProxy rdProxy = new _RDProxy(user, pass);
     initializers.add(rdProxy.init);
+  }
+
+  // Start REST API
+  if (argResults[restArg] == true) {
+    Config cfg = new Config();
+    RestServer restServer = cfg.restServer;
+    initializers.add(restServer.init);
   }
 
   // Resolve host
@@ -199,7 +215,7 @@ class _WebSocketController {
 
     // ignore: conflicting_dart_import
     serverApp.ws(_wsPath).listen((Socket socket) {
-      socket.on('ping').listen((Map data) {
+      socket.on('ping').listen((Map<String, dynamic> data) {
         _log.finer('pong: $data');
         socket.send('pong', data);
       });
@@ -342,7 +358,8 @@ class _RDProxy {
         StringBuffer sb = new StringBuffer();
         response.transform(UTF8.decoder).listen((content) {
           sb.write(content);
-        })..onDone(() {
+        })
+          ..onDone(() {
             completer.complete(sb.toString());
           });
       });

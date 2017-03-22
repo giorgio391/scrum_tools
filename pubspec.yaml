@@ -1,12 +1,17 @@
 name: scrum_tools
 description: Tools for Scrum
-version: 0.0.1
+version: 0.0.3
 author: Jorge Murcia <jorge@ondesta.es>
 environment:
   sdk: '>=1.19.0 <2.0.0'
 dependencies:
   angular2: ^2.2.0
   prompt:
+  mustache4dart: '>= 1.0.0 < 2.0.0'
+  mailer:
+  resource:
+  yaml:
+  test:
 dev_dependencies:
   browser: ^0.10.0
   dart_to_js_script_rewriter: ^1.0.1
