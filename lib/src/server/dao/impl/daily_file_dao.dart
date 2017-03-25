@@ -198,13 +198,17 @@ class DailyFileDAO implements DailyDAO {
   }
 
   @override
-  Future<List<DailyReport>> getLastDailyReports({DateTime dateReference, int number: 1}) {
-    return new Future.value(_dailyRepo._getLastObjects(dateReference ?? new DateTime.now(), number));
+  Future<List<DailyReport>> getLastDailyReports(
+      {DateTime dateReference, int number: 1}) {
+    return new Future.value(_dailyRepo._getLastObjects(
+        dateReference ?? new DateTime.now(), number));
   }
 
   @override
-  Future<List<String>> getLastDailyReportsAsJson({DateTime dateReference, int number: 1}) {
-    return new Future.value(_dailyRepo._getLastContent(dateReference ?? new DateTime.now(), number));
+  Future<List<String>> getLastDailyReportsAsJson(
+      {DateTime dateReference, int number: 1}) {
+    return new Future.value(_dailyRepo._getLastContent(
+        dateReference ?? new DateTime.now(), number));
   }
 
 /*

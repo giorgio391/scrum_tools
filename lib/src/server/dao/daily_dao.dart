@@ -12,5 +12,4 @@ abstract class DailyDAO {
 
   Future<List<DailyReport>> getLastDailyReports({DateTime dateReference, int number});
   Future<List<String>> getLastDailyReportsAsJson({DateTime dateReference, int number});
-
 }
