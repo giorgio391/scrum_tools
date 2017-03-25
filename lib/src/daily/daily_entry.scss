@@ -3,64 +3,96 @@
 
 .daily-entry {
   //border-bottom: 1px solid;
-  margin: 0 0 2px 2px;
   padding: 4px 0 2px 0;
   @include flexbox();
   @include flex-direction(column);
   .entry-row-1 {
     @include flexbox();
     @include flex-direction(row);
+    @include align-items(flex-start);
+    margin: 4px 0 4px 0;
     .process {
       width: 100px;
+      margin: 2px 5px 0 5px;
     }
-    .scope {
-      width: 55px;
-      color: white;
-      background: #868686;
+    .special {
       @include rounded(4px);
-      padding: 2px 4px 0 4px;
+      padding: 3px 4px 2px 4px;
       font-size: smaller;
       font-weight: bold;
       text-align: center;
+      color: white;
+    }
+    .scope {
+      @extend .special;
+      width: 55px;
+      background: #868686;
       margin-right: 5px;
     }
     .process {
-      width: 100px;
+      width: 92px;
       margin-right: 5px;
       text-align: left;
     }
     .teamMemberCode {
-      @include flex(1,1,0);
       color: royalblue;
       font-weight: bold;
+      margin: 2px 5px 0 0;
+    }
+    .comments {
+      @include flex(1, 1, 0);
+      @include flexbox();
+      @include flex-direction(row);
+      margin-top: 2px;
+      .notes {
+        color: darkgray;
+      }
+      .separator {
+        color: gray;
+      }
     }
     .workItemCode {
+      @extend .special;
+      cursor: pointer;
       width: 70px;
       background: midnightblue;
-      color: white;
-      font-weight: bold;
       margin: 0 5px 0 5px;
-      @include rounded(4px);
-      text-align: center;
-      padding-top: 1px;
       &.wi-pending {
         background: red;
       }
+      &.empty-wi::before {
+        content: "\00a0"; // &nbsp;
+      }
     }
     .status {
-      width: 80px;
+      @extend .special;
+      cursor: pointer;
+      background: #868686;
+      width: 86px;
+      margin-right: 5px;
+      &.behind {
+        background: red;
+      }
     }
     .hours {
-      width: 30px;
+      width: 42px;
+      padding-top: 2px;
       text-align: right;
-      margin-right: 8px;
+      &.hours-needed {
+        @extend .special;
+        background: red;
+        &::after {
+          content: "\00a0"; // &nbsp;
+        }
+      }
     }
   }
   .entry-row-2 {
     @include flexbox();
     @include flex-direction(row);
+    margin-left: 4px;
     .workItemName {
-      @include flex(1,1,0);
+      @include flex(1, 1, 0);
       font-style: italic;
       color: #868686;
     }
@@ -69,13 +101,16 @@
       @include flex-direction(row);
       @include flex-wrap(nowrap);
       @include justify-content(end);
-      @include align-items(center);
+      @include align-items(flex-end);
       div {
         @include rounded(4px);
+        padding: 3px 5px 2px 5px;
+        font-size: smaller;
+        font-weight: bold;
+        text-align: center;
         color: white;
         background: royalblue;
-        margin-right: 2px;
-        padding: 2px 4px 0 4px;
+        margin-left: 2px;
       }
     }
   }

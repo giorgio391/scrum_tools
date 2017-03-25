@@ -5,6 +5,8 @@ import 'package:scrum_tools/src/utils/simple_editor.dart';
 import 'package:scrum_tools/src/scrum_stopwatch/scrum_stopwatch.dart';
 import 'package:scrum_tools/src/scrum_stopwatch/stopwatch_pipe.dart';
 import 'package:scrum_tools/src/web_socket_service.dart';
+import 'package:scrum_tools/src/daily/daily_entities.dart';
+import 'package:scrum_tools/src/rest_service.dart';
 
 /// This class provides a web component to manage speaking times for a Scrum
 /// team members.
@@ -16,30 +18,33 @@ import 'package:scrum_tools/src/web_socket_service.dart';
 /// The list of team members is acquired by this component by means of a
 /// [ScrumService] whose injection is expected by the constructor
 /// [new DailyTimer].
-@Component(selector: 'daily-timer',
+@Component(
+    selector: 'daily-timer',
     templateUrl: 'daily_timer.html',
     styleUrls: const ['daily_timer.css'],
-    providers: const [ScrumService, ScrumStopwatch],
     pipes: const [StopwatchPipe],
-    directives: const [ScrumStopwatch, SimpleEditor]
+    directives: const [ScrumStopwatch, SimpleEditor],
+    providers: const [RestService, ScrumService, ScrumStopwatch]
 )
 class DailyTimer implements OnInit {
 
   // Uncomment the following in the future if the child [ScrumStopwatch] must
   // be injected.
-  /*
-  @ContentChild(ScrumStopwatch)
+
+  @ViewChild(ScrumStopwatch)
   ScrumStopwatch scrumStopWatch;
-  */
 
   ScrumService _service;
   DailyEventBus _eventBus;
+  RestService _restService;
 
-  DailyTimer(this._service, this._eventBus);
+  DailyTimer(this._restService, this._service, this._eventBus);
 
   MemberRecord _current;
+
   /// List of people pending to talk.
   final List<MemberRecord> pending = new List<MemberRecord>();
+
   /// List of people who has already talked.
   final List<MemberRecord> done = new List<MemberRecord>();
 
@@ -131,6 +136,25 @@ class DailyTimer implements OnInit {
       pending.add(new MemberRecord()..name = name);
     }
   }
+
+  void save() {
+    TimeReport report = new TimeReport(
+        new DateTime.now(),
+        scrumStopWatch.grossDuration,
+            () {
+          if (done != null && done.isNotEmpty) {
+            return new List<TimeReportEntry>.from(
+                done.map((MemberRecord record) {
+                  return new TimeReportEntry()
+                    ..teamMemberCode = record.name
+                    ..netDuration = record.duration;
+                }));
+          }
+          return null;
+        }()
+    );
+    _restService.saveTimeReport(report);
+  }
 }
 
 /// The objects of this class represents a team member, holding the name and
@@ -139,6 +163,7 @@ class DailyTimer implements OnInit {
 class MemberRecord {
   /// Name of the person represented by this object.
   String name;
+
   /// Time already spent speaking.
   Duration duration;
 }

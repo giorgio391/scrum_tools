@@ -3,9 +3,23 @@
         <div class="process" title="Type of process.">{{entry.process}}</div>
         <div class="scope" title="Scope (PAST | TODAY).">{{entry.scope}}</div>
         <div class="teamMemberCode" title="Team member code.">{{entry.teamMemberCode}}</div>
-        <div class="workItemCode" title="Work item code." [class.wi-pending]="entry.workItemPending">{{entry.workItemCode}}</div>
-        <div class="status" title="{{entry.scope.value == 'PAST' ? 'Previous status.' : 'Planned status for today.'}}">{{entry.status}}</div>
-        <div class="hours" title="{{entry.scope.value == 'PAST' ? 'Spent hours.' : 'Hours to go.'}}">{{entry.hours | number:'1.2'}}</div>
+        <div class="comments">
+            <div class="notes" title="Notes.">{{entry.notes}}</div>
+            <div class="separator" *ngIf="hasStatement">&nbsp;&gt;&gt;&nbsp;</div>
+            <div class="statement" title="Statement." *ngIf="hasStatement">{{entry.statement}}</div>
+        </div>
+        <div class="workItemCode" title="Work item code." [class.wi-pending]="workItemNeeded"
+             [class.empty-wi]="entry.workItemCode == null"
+             (click)="workItemClicked($event)">
+            {{entry.workItemCode}}
+        </div>
+        <div class="status" title="{{entry.scope.value == 'PAST' ? 'Status from last day.' : 'Planned status for today.'}}"
+             (click)="statusClicked($event)" [class.behind]="statusBehind">
+            {{entry.status}}
+        </div>
+        <div class="hours" title="{{entry.scope.value == 'PAST' ? 'Spent hours.' : 'Hours to go.'}}"
+             [class.hours-needed]="hoursNeeded">{{entry.hours | number:'1.2'}}
+        </div>
     </div>
     <div class="entry-row entry-row-2">
         <div class="workItemName" title="Work item title.">{{workItemName(entry.workItemCode)}}</div>

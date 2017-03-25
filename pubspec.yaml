@@ -1,6 +1,6 @@
 name: scrum_tools
 description: Tools for Scrum
-version: 0.0.3
+version: 0.0.4
 author: Jorge Murcia <jorge@ondesta.es>
 environment:
   sdk: '>=1.19.0 <2.0.0'
@@ -12,6 +12,7 @@ dependencies:
   resource:
   yaml:
   test:
+  angular2_components:
 dev_dependencies:
   browser: ^0.10.0
   dart_to_js_script_rewriter: ^1.0.1
@@ -22,6 +23,6 @@ transformers:
     - 'package:angular2/common.dart#COMMON_DIRECTIVES'
     platform_pipes:
     - 'package:angular2/common.dart#COMMON_PIPES'
-    entry_points: [web/daily1.dart, web/daily2.dart]
+    entry_points: [web/daily1.dart, web/daily2.dart, web/dailyX.dart]
     $exclude: web/font-awesome-4.7.0
 - dart_to_js_script_rewriter

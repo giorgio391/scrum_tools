@@ -40,19 +40,17 @@
           @include flexbox();
           @include flex-direction(row);
           border-bottom: 1px solid lightgray;
+          border-left: 4px solid white;
           /*
           &.even {
             background: lightgray;
           }
           */
+          &.on-edit {
+            border-left: 4px solid yellow;
+          }
           &.selected {
             background: lightblue;
-          }
-          .marker {
-            //@include flex(0,0,20);
-            text-align: left;
-            width: 10px;
-            padding-top: 3px;
           }
           .entry-data {
             @include flex(1,1,0);
@@ -62,6 +60,7 @@
       }
     }
     .footer {
+      margin-top: 10px;
       text-align: right;
     }
   }

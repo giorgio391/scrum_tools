@@ -26,7 +26,7 @@ class RestServer {
   RestServer(this._dao, [this._pathRoot = '/rest']) {
     _postHandlers = {
       '/saveDaily': _saveDaily,
-      '/saveTime': _saveTime
+      '/saveTimeReport': _saveTimeReport
     };
     /*_getHandlers = {
       '/getLastDaily': _getLastDaily,
@@ -35,6 +35,7 @@ class RestServer {
   }
 
   void init(Server appServer) {
+    // ignore: conflicting_dart_import
     appServer.post(new RegExp("${_pathRoot}/.*")).listen((Request request) {
       String requestKey = _requestedKey(request);
       _postHandler handler = _postHandlers[requestKey];
@@ -130,7 +131,7 @@ class RestServer {
   }
 
   //================================================================
-
+/*
   int _getInt(String name, Map<String, String> params) {
     if (params != null) {
       String s = params['name'];
@@ -140,7 +141,7 @@ class RestServer {
     }
     return null;
   }
-
+*/
   //================================================================
 
   void _saveDaily(Completer<Map<String, dynamic>> completer,
@@ -154,7 +155,7 @@ class RestServer {
     });
   }
 
-  void _saveTime(Completer<Map<String, dynamic>> completer,
+  void _saveTimeReport(Completer<Map<String, dynamic>> completer,
       Map<String, dynamic> map) {
     TimeReport report = new TimeReport.fromMap(map);
     _log.finest(report);

@@ -23,4 +23,11 @@ class RestService {
     }
   }
 
+  void saveTimeReport(TimeReport report) {
+    if (report != null) {
+      String s = JSON.encode(report.toMap());
+      HttpRequest.request(
+          '$_connectUrl/saveTimeReport', method: 'POST', sendData: s);
+    }
+  }
 }
