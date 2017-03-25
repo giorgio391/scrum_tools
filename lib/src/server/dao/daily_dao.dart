@@ -10,6 +10,7 @@ abstract class DailyDAO {
 
   Future<DailyReport> getDailyReport(DateTime date);
 
-  Future<List<DailyReport>> getLastDailyReports(DateTime date, int number);
+  Future<List<DailyReport>> getLastDailyReports({DateTime dateReference, int number});
+  Future<List<String>> getLastDailyReportsAsJson({DateTime dateReference, int number});
 
 }

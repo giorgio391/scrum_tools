@@ -1,4 +1,4 @@
-<form (ngSubmit)="onSubmit()" #dailyEntryForm="ngForm">
+<form (ngSubmit)="onSubmit()" #dailyEntryForm="ngForm" (keyup)="keyUp($event)">
     <div class="daily-form-container">
         <div class="daily-form-row team-member row">
             <div class="team-member-code form-group col-md-9" [class.has-error]="!teamMember.valid">
@@ -35,7 +35,7 @@
         <div class="daily-form-row row">
             <div class="form-group col-md-6" [class.has-error]="!wiControl.valid">
                 <label for="workItemRef">Work item reference</label>
-                <input #wiControl="ngForm" pattern="(^DE[0-9][0-9][0-9][0-9]$)|(^US[0-9][0-9][0-9][0-9][0-9]$)"
+                <input #wiInput #wiControl="ngForm" pattern="(^DE[0-9][0-9][0-9][0-9]$)|(^US[0-9][0-9][0-9][0-9][0-9]$)"
                        type="text" class="form-control" id="workItemRef" placeholder="Work item reference..."
                        title="Reference of the work item." ngControl="workItem"
                        (keyup.enter)="wiKeyUp($event)" (blur)="checkWiCode()" [(ngModel)]="model.workItemCode"/>

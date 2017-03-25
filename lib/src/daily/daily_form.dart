@@ -12,6 +12,7 @@ import 'package:scrum_tools/src/utils/helpers.dart';
 )
 class DailyForm {
 
+  // ignore: conflicting_dart_import
   static final RegExp _defectRegExp = new RegExp(r'^DE[0-9][0-9][0-9][0-9]$');
   static final RegExp _usRegExp = new RegExp(
       r'^US[0-9][0-9][0-9][0-9][0-9]$');
@@ -30,6 +31,12 @@ class DailyForm {
   @Output()
   final EventEmitter<String> onStopwatchRequest = new EventEmitter<String>(
       false);
+
+  @ViewChild("wiInput")
+  ElementRef workItemElementRef;
+
+  @ViewChild("dailyEntryForm")
+  NgForm ngForm;
 
   DailyEntry _beingEdited;
   DailyEntry _model;
@@ -66,6 +73,28 @@ class DailyForm {
     }
   }
 
+  @Input()
+  void set workItemCode(String code) {
+    if (code != null) {
+      model.workItemCode = code;
+      checkWiCode();
+      workItemElementRef.nativeElement.focus();
+    }
+  }
+
+  bool get pastScope =>
+      model == null || model.scope == null || model.scope == Scope.PAST;
+
+  bool get editing => _beingEdited != null;
+
+  List<Scope> get scopes => Scope.VALUES;
+
+  List<Process> get processes => Process.VALUES;
+
+  List<Environment> get environments => Environment.VALUES;
+
+  List<Status> get statuses => Status.VALUES;
+
   DailyForm(ScrumService service) {
     service.config.then((ScrumConfig config) {
       _teamMembers = config.teamMemberNames;
@@ -73,12 +102,65 @@ class DailyForm {
     model = null;
   }
 
+  void changeModel(DailyEntry modelTemplate) {
+    model.changeFrom(modelTemplate);
+    checkWiCode();
+  }
+
+  void keyUp(KeyboardEvent event) {
+    if (event.ctrlKey) {
+      if (event.keyCode == KeyCode.ENTER && ngForm.form.valid) {
+        onSubmit();
+      }
+    } else {
+      if (event.keyCode == KeyCode.ESC) {
+        event.stopPropagation();
+        cancel();
+      }
+    }
+  }
+
   void wiKeyUp(KeyboardEvent event) {
-    if (event.which == 13) checkWiCode();
+    if (event.which == KeyCode.ENTER) checkWiCode();
   }
 
   void nextTeamMember() {
     onStopwatchRequest.add('next');
+  }
+
+  void onSubmit() {
+    ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
+        _beingEdited, _model);
+    _lastEditing = changeRecord.newValue != null ? new DailyEntry() : null;
+    if (_lastEditing != null) {
+      _lastEditing.teamMemberCode = changeRecord.newValue.teamMemberCode;
+      _lastEditing.process = changeRecord.newValue.process;
+      _lastEditing.scope = changeRecord.newValue.scope;
+      if (changeRecord.newValue.process == Process.CI) {
+        _lastEditing.status = changeRecord.newValue.status;
+        _lastEditing.environments =
+        changeRecord.newValue.environments == null ? null :
+        new List<Environment>.from(changeRecord.newValue.environments);
+      }
+      workItemElementRef.nativeElement.focus();
+    }
+    model = null;
+    onEntryEdited.add(changeRecord);
+  }
+
+  void cancel() {
+    if (editing) {
+      ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
+          _beingEdited, null);
+      onEntryEdited.add(changeRecord);
+      model = null;
+    }
+  }
+
+  void normalizeHours(double value) {
+    if (_model != null) {
+      _model.hours = _normalizeHours(value);
+    }
   }
 
   void checkWiCode() {
@@ -100,45 +182,6 @@ class DailyForm {
 
   void _triggerWi(String wiCode) {
     workItemCodeChange.add(wiCode);
-  }
-
-  void onSubmit() {
-    ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
-        _beingEdited, _model);
-    _lastEditing = changeRecord.newValue != null ? new DailyEntry() : null;
-    if (_lastEditing != null) {
-      _lastEditing.teamMemberCode = changeRecord.newValue.teamMemberCode;
-      _lastEditing.process= changeRecord.newValue.process;
-      _lastEditing.scope = changeRecord.newValue.scope;
-    }
-    model = null;
-    onEntryEdited.add(changeRecord);
-  }
-
-  void cancel() {
-    ChangeRecord<DailyEntry> changeRecord = new ChangeRecord<DailyEntry>(
-        _beingEdited, null);
-    onEntryEdited.add(changeRecord);
-    model = null;
-  }
-
-  bool get pastScope =>
-      model == null || model.scope == null || model.scope == Scope.PAST;
-
-  bool get editing => _beingEdited != null;
-
-  List<Scope> get scopes => Scope.VALUES;
-
-  List<Process> get processes => Process.VALUES;
-
-  List<Environment> get environments => Environment.VALUES;
-
-  List<Status> get statuses => Status.VALUES;
-
-  void normalizeHours(double value) {
-    if (_model != null) {
-      _model.hours = _normalizeHours(value);
-    }
   }
 
   double _normalizeHours(double value) {

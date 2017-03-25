@@ -15,7 +15,14 @@
     @include flex(1, 1, 0);
     .header {
       @include box-shadow(5px, 5px, 30px, -7px, $rd-color-shadow);
-      padding: 5px;
+      .work-item {
+        @include rounded(4px);
+        padding: 5px;
+        &.not-valid {
+          color: white;
+          background: red;
+        }
+      }
     }
     .body {
       @include flexbox();
@@ -40,19 +47,17 @@
           @include flexbox();
           @include flex-direction(row);
           border-bottom: 1px solid lightgray;
+          border-left: 4px solid white;
           /*
           &.even {
             background: lightgray;
           }
           */
+          &.on-edit {
+            border-left: 4px solid yellow;
+          }
           &.selected {
             background: lightblue;
-          }
-          .marker {
-            //@include flex(0,0,20);
-            text-align: left;
-            width: 10px;
-            padding-top: 3px;
           }
           .entry-data {
             @include flex(1,1,0);
@@ -62,6 +67,7 @@
       }
     }
     .footer {
+      margin-top: 10px;
       text-align: right;
     }
   }

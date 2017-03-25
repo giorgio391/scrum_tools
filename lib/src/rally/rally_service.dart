@@ -13,6 +13,8 @@ class RallyService {
 
   static const int _projectId = 55308115013;
 
+  int get defaultProjectID => _projectId;
+
   String _pathRoot;
 
   RegExp _defectRegExp = new RegExp(r'^DE[0-9][0-9][0-9][0-9]$');

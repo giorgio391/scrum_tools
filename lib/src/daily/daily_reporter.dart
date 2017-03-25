@@ -34,12 +34,17 @@ class DailyReporter {
   RDWorkItem get currentWorkItem => _currentWorkItem;
 
   String _currentTeamMemberCode;
+  String _preferredWorkItemCode;
 
   String get currentTeamMemberCode => _currentTeamMemberCode;
+
+  String get preferredWorkItemCode => _preferredWorkItemCode;
 
   List<DailyEntry> entries;
 
   List<DailyEntry> selected = [];
+
+  Map<String, DailyEntry> _statusControl = {};
 
   DailyEntry onEditing;
 
@@ -48,6 +53,15 @@ class DailyReporter {
 
   bool get hasEntries => entries != null && entries.isNotEmpty;
 
+  bool get editing => onEditing != null;
+
+  bool get validWorkItem =>
+      _currentWorkItem == null ||
+          _currentWorkItem.project.ID == _rallyService.defaultProjectID;
+
+  @ViewChild(DailyForm)
+  DailyForm dailyForm;
+
   DailyReporter(this._rallyService, this._eventBus, this._commands,
       this._restService) {
     _eventBus.addTeamMemberListener(teamMemberCodeReceived);
@@ -55,6 +69,10 @@ class DailyReporter {
 
   void teamMemberCodeReceived(String code) {
     _currentTeamMemberCode = code;
+  }
+
+  void stopwatchRequest(String command) {
+    _eventBus.sendStopwatchCommandMessage(command);
   }
 
   @Input()
@@ -72,14 +90,33 @@ class DailyReporter {
     }
   }
 
-  void stopwatchRequest(String command) {
-    _eventBus.sendStopwatchCommandMessage(command);
+  void entryWorkItemClicked(DailyEntry entry) {
+    if (entry.workItemCode != null && entry.workItemCode.isNotEmpty) {
+      dailyForm.workItemCode = entry.workItemCode;
+    }
+  }
+
+  void entryStatusClicked(DailyEntry entry) {
+    if (entry.scope == Scope.PAST && entry.status == Status.WIP) {
+      DailyEntry template = new DailyEntry.clone(entry);
+      template.scope = Scope.TODAY;
+      template.status = DailyEntry.defaultStatus;
+      template.hours = null;
+      template.notes = null;
+      template.statement = null;
+      template.environments = null;
+      dailyForm.changeModel(template);
+    }
   }
 
   void entryClick(DailyEntry entry, MouseEvent event) {
     if (event.button == 0) {
-      if (event.ctrlKey || event.shiftKey) {
+      if (event.ctrlKey && !event.shiftKey) {
         toggleSelected(entry);
+      } else if (event.ctrlKey && event.shiftKey) {
+        if (entry.workItemCode != null) {
+          _preferredWorkItemCode = entry.workItemCode;
+        }
       } else {
         setSelection(entry);
       }
@@ -89,7 +126,13 @@ class DailyReporter {
   }
 
   void entryDblClick(DailyEntry entry, MouseEvent event) {
-    startEditing(entry);
+    if (event.ctrlKey) {
+      DailyEntry entryClone = new DailyEntry.clone(entry);
+      entryEdited(new ChangeRecord(null, entryClone));
+      startEditing(entryClone);
+    } else {
+      startEditing(entry);
+    }
   }
 
   void startEditing(DailyEntry entry) {
@@ -100,11 +143,17 @@ class DailyReporter {
 
   bool isOnEdit(DailyEntry entry) => onEditing != null && onEditing == entry;
 
+  bool statusBehind(DailyEntry entry) {
+    return hasValue(entry.workItemCode) && entry.scope == Scope.PAST &&
+        _statusControl[entry.workItemCode] != null &&
+        entry.status < _statusControl[entry.workItemCode].status;
+  }
+
   void listKeyUp(KeyboardEvent event) {
     if (!event.ctrlKey) {
       if (event.keyCode == KeyCode.DELETE)
         if (selected != null && selected.isNotEmpty) {
-          _commands.doNewCommand(new _RemoveSelectedCommand(entries, selected));
+          _commands.doNewCommand(new _RemoveSelectedCommand(this, selected));
         }
     }
   }
@@ -115,6 +164,10 @@ class DailyReporter {
         _commands.undo();
       } else if (event.keyCode == KeyCode.Y) {
         _commands.redo();
+      }
+    } else {
+      if (event.keyCode == KeyCode.ESC) {
+        dailyForm.cancel();
       }
     }
   }
@@ -151,12 +204,12 @@ class DailyReporter {
       onEditing = null;
       if (changeRecord.newValue != null && changeRecord.oldValue == null) {
         if (entries == null) entries = [];
-        _commands.doNewCommand(new _AddCommand(entries, changeRecord.newValue));
+        _commands.doNewCommand(new _AddCommand(this, changeRecord.newValue));
       } else
       if (changeRecord.newValue != null && changeRecord.oldValue != null &&
           entries != null && entries.isNotEmpty) {
         _commands.doNewCommand(new _EditedCommand(
-            entries, changeRecord.oldValue, changeRecord.newValue));
+            this, changeRecord.oldValue, changeRecord.newValue));
       }
     }
   }
@@ -178,71 +231,123 @@ class DailyReporter {
 
 class _AddCommand implements Command {
 
-  List<DailyEntry> _list;
+  DailyReporter _reporter;
   DailyEntry _newValue;
+  DailyEntry _oldStatusControl;
+  int _index;
 
-  _AddCommand(this._list, this._newValue);
+  _AddCommand(this._reporter, this._newValue, [this._index = 0]);
 
   @override
   void doCommand() {
-    _list.add(_newValue);
-  }
-
-  @override
-  void undo() {
-    _list.remove(_newValue);
-  }
-}
-
-class _EditedCommand implements Command {
-
-  List<DailyEntry> _list;
-  DailyEntry _newValue;
-  DailyEntry _oldValue;
-
-  _EditedCommand(this._list, this._oldValue, this._newValue);
-
-  @override
-  void doCommand() {
-    int index = _list.indexOf(_oldValue);
-    if (index > -1) {
-      _list.removeAt(index);
-      _list.insert(index, _newValue);
+    _reporter.entries.insert(_index, _newValue);
+    if (_newValue.scope == Scope.PAST && hasValue(_newValue.workItemCode)) {
+      _oldStatusControl = _reporter._statusControl[_newValue.workItemCode];
+      if (_oldStatusControl == null ||
+          _oldStatusControl.status < _newValue.status) {
+        _reporter._statusControl[_newValue.workItemCode] = _newValue;
+      }
     }
   }
 
   @override
   void undo() {
-    int index = _list.indexOf(_newValue);
+    if (_oldStatusControl != null) {
+      _reporter._statusControl[_newValue.workItemCode] = _oldStatusControl;
+    } else {
+      _reporter._statusControl.remove(_newValue.workItemCode);
+    }
+    _reporter.entries.remove(_newValue);
+  }
+}
+
+class _EditedCommand implements Command {
+
+  _RemoveCommand _removeCommand;
+  _AddCommand _addCommand;
+
+  _EditedCommand(DailyReporter reporter, DailyEntry oldValue,
+      DailyEntry newValue) {
+    int index = reporter.entries.indexOf(oldValue);
     if (index > -1) {
-      _list.removeAt(index);
-      _list.insert(index, _oldValue);
+      _removeCommand = new _RemoveCommand(reporter, oldValue);
+      _addCommand = new _AddCommand(reporter, newValue, index);
+    }
+  }
+
+  @override
+  void doCommand() {
+    if (_removeCommand != null) {
+      _removeCommand.doCommand();
+    }
+    if (_addCommand != null) {
+      _addCommand.doCommand();
+    }
+  }
+
+  @override
+  void undo() {
+    if (_addCommand != null) {
+      _addCommand.undo();
+    }
+    if (_removeCommand != null) {
+      _removeCommand.undo();
     }
   }
 }
 
 class _RemoveCommand implements Command {
 
-  List<DailyEntry> _list;
+  DailyReporter _reporter;
   DailyEntry _value;
   int _index;
+  DailyEntry _oldStatusControl, _newStatusControl;
 
-  _RemoveCommand(this._list, this._value);
+  _RemoveCommand(this._reporter, this._value);
 
   @override
   void doCommand() {
-    int index = _list.indexOf(_value);
+    int index = _reporter.entries.indexOf(_value);
     if (index > -1) {
       this._index = index;
-      _list.removeAt(index);
+      _reporter.entries.removeAt(index);
+      if (_value.scope == Scope.PAST && hasValue(_value.workItemCode)) {
+        if (_reporter._statusControl[_value.workItemCode] == _value) {
+          _oldStatusControl = _reporter._statusControl[_value.workItemCode];
+          _newStatusControl =
+              _findStatusControl(_reporter.entries, _value.workItemCode);
+          if (_newStatusControl != null) {
+            _reporter._statusControl[_value.workItemCode] = _newStatusControl;
+          } else {
+            _reporter._statusControl.remove(_value.workItemCode);
+          }
+        }
+      }
     }
   }
 
   @override
   void undo() {
     if (_index > -1) {
-      _list.insert(_index, _value);
+      if (_oldStatusControl != null) {
+        _reporter._statusControl[_value.workItemCode] = _oldStatusControl;
+      } else {
+        _reporter._statusControl.remove(_value.workItemCode);
+      }
+      _reporter.entries.insert(_index, _value);
     }
+  }
+
+  static DailyEntry _findStatusControl(List<DailyEntry> list,
+      String workItemCode) {
+    if (!hasValue(list) || !hasValue(workItemCode)) return null;
+    DailyEntry control = null;
+    list.forEach((DailyEntry entry) {
+      if (entry.scope == Scope.PAST && entry.workItemCode == workItemCode &&
+          (control == null || control.status < entry.status))
+        control = entry;
+    });
+    return control;
   }
 }
 
@@ -251,8 +356,8 @@ class _RemoveSelectedCommand extends GroupCommand {
   List<DailyEntry> _selection;
   List<DailyEntry> _selected;
 
-  _RemoveSelectedCommand(List<DailyEntry> list, this._selection)
-      : super (buildCommands(list, _selection)) {
+  _RemoveSelectedCommand(DailyReporter reporter, this._selection)
+      : super (_buildCommands(reporter, _selection)) {
     this._selected = new List.unmodifiable(_selection);
   }
 
@@ -269,11 +374,11 @@ class _RemoveSelectedCommand extends GroupCommand {
     _selection.addAll(_selected);
   }
 
-  static List<Command> buildCommands(List<DailyEntry> list,
+  static List<Command> _buildCommands(DailyReporter reporter,
       List<DailyEntry> _selection) {
     List<Command> commands = [];
     _selection.forEach((DailyEntry entry) {
-      commands.add(new _RemoveCommand(list, entry));
+      commands.add(new _RemoveCommand(reporter, entry));
     });
     return commands;
   }

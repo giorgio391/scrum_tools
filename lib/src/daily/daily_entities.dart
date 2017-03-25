@@ -2,23 +2,23 @@ import 'package:scrum_tools/src/utils/helpers.dart';
 
 class Environment implements Comparable<Environment> {
 
-  static final LOCAL = new Environment._internal('LOCAL', 0);
-  static final QA = new Environment._internal('QA', 1);
-  static final UAT = new Environment._internal('UAT', 2);
-  static final PRE = new Environment._internal('PRE', 3);
-  static final PRO = new Environment._internal('PRO', 4);
+  static const LOCAL = const Environment._internal('LOCAL', 0);
+  static const QA = const Environment._internal('QA', 1);
+  static const UAT = const Environment._internal('UAT', 2);
+  static const PRE = const Environment._internal('PRE', 3);
+  static const PRO = const Environment._internal('PRO', 4);
 
   static final List<Environment> VALUES = new List.unmodifiable(
       [LOCAL, QA, UAT, PRE, PRO]);
 
-  String _value;
-  int _order;
+  final String _value;
+  final int _order;
 
   String get value => _value;
 
   int get order => _order;
 
-  Environment._internal(this._value, this._order);
+  const Environment._internal(this._value, this._order);
 
   factory Environment(String value) {
     return parse(value);
@@ -53,16 +53,16 @@ class Environment implements Comparable<Environment> {
 
 class Scope {
 
-  static final PAST = new Scope._internal('PAST');
-  static final TODAY = new Scope._internal('TODAY');
+  static const PAST = const Scope._internal('PAST');
+  static const TODAY = const Scope._internal('TODAY');
 
   static final List<Scope> VALUES = new List.unmodifiable([PAST, TODAY]);
 
-  String _value;
+  final String _value;
 
   String get value => _value;
 
-  Scope._internal(this._value);
+  const Scope._internal(this._value);
 
   factory Scope(String value) {
     return parse(value);
@@ -85,21 +85,20 @@ class Scope {
 
 class Process {
 
-  static final CI = new Process._internal('CI');
-  static final DEFINITION = new Process._internal('DEFINITION');
-  static final DEPLOYMENT = new Process._internal('DEPLOYMENT');
-  static final DEVELOPMENT = new Process._internal('DEVELOPMENT');
-  static final INQUIRIES = new Process._internal('INQUIRIES');
-
+  static const CI = const Process._internal('CI');
+  static const DEFINITION = const Process._internal('DEFINITION');
+  static const DEPLOYMENT = const Process._internal('DEPLOYMENT');
+  static const DEVELOPMENT = const Process._internal('DEVELOPMENT');
+  static const INQUIRIES = const Process._internal('INQUIRIES');
 
   static final List<Process> VALUES = new List.unmodifiable(
       [CI, DEFINITION, DEPLOYMENT, DEVELOPMENT, INQUIRIES]);
 
-  String _value;
+  final String _value;
 
   String get value => _value;
 
-  Process._internal(this._value);
+  const Process._internal(this._value);
 
   factory Process(String value) {
     return parse(value);
@@ -122,25 +121,25 @@ class Process {
 
 class Status implements Comparable<Status> {
 
-  static final BLOCKED = new Status._internal("BLOCKED", 0);
-  static final WIP = new Status._internal("WIP", 1);
-  static final RTP = new Status._internal("RTP", 2);
-  static final COMPLETED = new Status._internal("COMPLETED", 3);
-  static final MERGED = new Status._internal("MERGED", 4);
-  static final DEPLOYED = new Status._internal("DEPLOYED", 5);
+  static const BLOCKED = const Status._internal("BLOCKED", 0);
+  static const WIP = const Status._internal("WIP", 1);
+  static const RTP = const Status._internal("RTP", 2);
+  static const COMPLETED = const Status._internal("COMPLETED", 3);
+  static const MERGED = const Status._internal("MERGED", 4);
+  static const DEPLOYED = const Status._internal("DEPLOYED", 5);
 
   static final List<Status> VALUES = new List.unmodifiable(
       [BLOCKED, WIP, RTP, COMPLETED, MERGED, DEPLOYED]
   );
 
-  String _value;
-  int _order;
+  final String _value;
+  final int _order;
 
   String get value => _value;
 
   int get order => _order;
 
-  Status._internal(this._value, this._order);
+  const Status._internal(this._value, this._order);
 
   factory Status(String value) {
     return parse(value);
@@ -156,8 +155,11 @@ class Status implements Comparable<Status> {
   }
 
   operator >(Status s) => _order > s._order;
+
   operator <(Status s) => _order < s._order;
+
   operator >=(Status s) => _order >= s._order;
+
   operator <=(Status s) => _order <= s._order;
 
   int compareTo(Status other) {
@@ -172,11 +174,14 @@ class Status implements Comparable<Status> {
 
 class DailyEntry implements Mappable {
 
-  Process process = Process.DEVELOPMENT;
+  static const defaultStatus = Status.WIP;
+  static const defaultProcess = Process.DEVELOPMENT;
+
+  Process process = defaultProcess;
   Scope scope = Scope.PAST;
   String teamMemberCode;
   String workItemCode;
-  Status status = Status.WIP;
+  Status status = defaultStatus;
   double hours;
   String notes;
   String statement;
@@ -233,43 +238,57 @@ class DailyEntry implements Mappable {
 
   static DailyEntry _fromMap(Map<String, Object> map) {
     if (map != null) {
+      DailyEntry entry = new DailyEntry();
+      entry.changeFromMap(map);
+      return entry;
+    }
+    return null;
+  }
+
+  void changeFrom(DailyEntry entry) {
+    if (entry != null && entry != this) {
+      changeFromMap(entry.toMap());
+    }
+  }
+
+  void changeFromMap(Map<String, Object> map) {
+    if (map != null) {
       Function buildEnvironments = (List<String> stringsList) {
         if (stringsList != null && stringsList.isNotEmpty) {
           List<Environment> list = [];
           stringsList.forEach((String value) {
             Environment env = new Environment(value);
-            if(env != null) list.add(env);
+            if (env != null) list.add(env);
           });
           if (list.isNotEmpty) {
             list.sort();
             return list;
           }
-          return null;
         }
         return null;
       };
-      DailyEntry entry = new DailyEntry()
+      this
         ..process = Process.parse(map['process'])
         ..scope = Scope.parse(map['scope'])
         ..teamMemberCode = map['teamMemberCode']
         ..workItemCode = map['workItemCode']
         ..status = Status.parse(map['status'])
-        ..hours = map['hours']
+        ..hours = map['hours'] is int
+            ? (map['hours'] as int).toDouble()
+            : map['hours']
         ..environments = buildEnvironments(map['environment'])
         ..notes = map['notes']
         ..statement = map['statement']
         ..workItemPending = map['workItemPending']
       ;
-      return entry;
     }
     return null;
   }
 }
 
 class TimeReportEntry implements Mappable {
-  DateTime startTime;
+  static const int _serialVer = 1;
   Duration netDuration;
-  Duration grossDuration;
   String teamMemberCode;
 
   TimeReportEntry();
@@ -277,12 +296,8 @@ class TimeReportEntry implements Mappable {
   factory TimeReportEntry.fromMap(Map<String, Object> map) {
     if (map != null) {
       return new TimeReportEntry()
-        ..startTime = map['startTime'] == null ? null :
-        DateTime.parse(map['startTime'])
         ..netDuration = map['netDuration'] == null ? null :
-        new Duration(milliseconds: map['netDuration'])
-        ..grossDuration = map['grossDuration'] == null ? null :
-        new Duration(milliseconds: map['grossDuration'])
+        parseDuration(map['netDuration'])
         ..teamMemberCode = map['teamMemberCode'];
     }
     return null;
@@ -293,17 +308,16 @@ class TimeReportEntry implements Mappable {
   }
 
   Map<String, Object> toMap() {
-    Map<String, Object> map = {};
-    if (startTime != null) map['startTime'] = startTime.toIso8601String();
-    if (netDuration != null) map['netDuration'] = netDuration.inMilliseconds;
-    if (grossDuration != null)
-      map['grossDuration'] = grossDuration.inMilliseconds;
+    Map<String, Object> map = {'_serialVer': _serialVer};
     if (teamMemberCode != null) map['teamMemberCode'] = teamMemberCode;
+    if (netDuration != null) map['netDuration'] = netDuration.toString();
     return map;
   }
 }
 
 class TimeReport implements MappableWithDate {
+
+  static const int _serialVer = 1;
 
   DateTime _date;
 
@@ -311,12 +325,15 @@ class TimeReport implements MappableWithDate {
 
   Iterable<TimeReportEntry> get entries => _entries;
 
-  Duration _total;
+  Duration _total, _grossDuration;
 
   DateTime get date => _date;
 
-  TimeReport(Iterable<TimeReportEntry> entries) {
-    _entries = new List.unmodifiable(entries);
+  Duration get grossDuration => _grossDuration;
+
+  TimeReport(DateTime this._date, this._grossDuration,
+      Iterable<TimeReportEntry> entries) {
+    _entries = entries == null ? null : new List.unmodifiable(entries);
   }
 
   factory TimeReport.fromMap(Map<String, Object> map) {
@@ -325,15 +342,20 @@ class TimeReport implements MappableWithDate {
 
   static TimeReport buildFromMap(Map<String, Object> map) {
     if (map != null) {
-      List<Map<String, Object>> entryMaps = map['entries'];
-      if (entryMaps != null && entryMaps.length > 0) {
-        List<TimeReportEntry> entries = [];
-        entryMaps.forEach((Map<String, Object> entryMap) {
-          entries.add(new TimeReportEntry.fromMap(entryMap));
-        });
-        return new TimeReport(entries)
-          .._date = map['date'] == null ? null : DateTime.parse(map['date']);
-      }
+      return new TimeReport(
+          map['date'] == null ? null : DateTime.parse(map['date']),
+          parseDuration(map['grossDuration']),
+              () {
+            List<Map<String, Object>> entryMaps = map['entries'];
+            if (entryMaps != null && entryMaps.isNotEmpty) {
+              List<TimeReportEntry> entries = [];
+              entryMaps.forEach((Map<String, Object> entryMap) {
+                entries.add(new TimeReportEntry.fromMap(entryMap));
+              });
+              return entries;
+            }
+            return null;
+          }());
     }
     return null;
   }
@@ -353,8 +375,9 @@ class TimeReport implements MappableWithDate {
   }
 
   Map<String, Object> toMap() {
-    Map<String, Object> map = {};
+    Map<String, Object> map = {'_serialVer': _serialVer};
     if (date != null) map['date'] = date.toIso8601String();
+    if (grossDuration != null) map['grossDuration'] = grossDuration.toString();
     if (_entries != null && _entries.length > 0) {
       List<Map<String, Object>> entryMaps = [];
       _entries.forEach((TimeReportEntry entry) {
@@ -368,13 +391,17 @@ class TimeReport implements MappableWithDate {
 
 class DailyReport implements MappableWithDate {
 
+  static const int _serialVer = 1;
+
   DateTime _date;
   List<DailyEntry> _entries;
 
   Iterable<DailyEntry> get entries => _entries;
+
   DateTime get date => _date;
 
   DailyReport(this._date, this._entries);
+
   DailyReport._internal();
 
   factory DailyReport.fromMap(Map<String, Object> map) {
@@ -405,7 +432,7 @@ class DailyReport implements MappableWithDate {
   }
 
   Map<String, Object> toMap() {
-    Map<String, Object> map = {};
+    Map<String, Object> map = {'_serialVer': _serialVer};
     if (date != null) map['date'] = date.toIso8601String();
     if (_entries != null && _entries.length > 0) {
       List<Map<String, Object>> entryMaps = [];

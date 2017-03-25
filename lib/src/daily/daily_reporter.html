@@ -3,6 +3,7 @@
         <daily-form
                 [model]="onEditing"
                 [teamMemberCode]="currentTeamMemberCode"
+                [workItemCode]="preferredWorkItemCode"
                 (onEntryEdited)="entryEdited($event)"
                 (workItemCodeChange)="workItemCode=$event"
                 (onStopwatchRequest)="stopwatchRequest($event)">
@@ -10,7 +11,7 @@
     </div>
     <div class="main">
         <div class="header">
-            <div>{{workItemCode}}&nbsp;{{currentWorkItem?.name}}</div>
+            <div class="work-item" [class.not-valid]="!validWorkItem">{{workItemCode}}&nbsp;{{currentWorkItem?.name}}</div>
         </div>
         <div class="body">
             <div *ngIf="!hasEntries" class="no-entry">
@@ -21,9 +22,10 @@
                      [class.even]="evenEntry" [class.odd]="oddEntry"
                      *ngFor="let entry of entries; let oddEntry=odd; let evenEntry=even;"
                      (click)="entryClick(entry, $event)" (dblclick)="entryDblClick(entry, $event)">
-                    <div class="marker"><span *ngIf="isOnEdit(entry)">&gt;</span></div>
                     <div class="entry-data">
-                        <daily-entry [entry]="entry"></daily-entry>
+                        <daily-entry [entry]="entry" (onWorkItemClicked)="entryWorkItemClicked($event)"
+                                     [statusBehind]="statusBehind(entry)"
+                                     (onStatusClicked)="entryStatusClicked($event)"></daily-entry>
                     </div>
                 </div>
             </div>
