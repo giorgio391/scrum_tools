@@ -1,4 +1,4 @@
-mailer:
+mailer-1:
   host: posteio.emergya.com
   user: team-green@servicios.emergya.com
   pass: j43vDvgT6g
@@ -14,3 +14,12 @@ log:
   custom:
     #- rd-proxy: FINER
 
+spread_daily:
+  conf-1:
+    mode: text
+    number: 2
+    out: true
+  conf-2:
+    mode: html
+    number: 2
+    out: true

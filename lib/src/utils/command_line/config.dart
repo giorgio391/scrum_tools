@@ -28,6 +28,8 @@ const Map<String, UtilOptionCommand> commands = const {
 Map<String, dynamic> _cfgMap;
 Logger _log;
 
+Map<String, dynamic> cfgMap(String key) => _cfgMap[key];
+
 Future loadConfig() async {
   Resource cfgResource = new Resource(
       "package:scrum_tools/src/utils/command_line/config.yaml");
@@ -38,6 +40,7 @@ Future loadConfig() async {
   Level level = _resolveLogLevelByName(logLevel);
   Logger.root.level = level;
   Logger.root.onRecord.listen((rec) {
+    // ignore: conflicting_dart_import
     print('${rec.level.name} :: ${rec.loggerName} : ${rec.time}: ${rec.message}');
   });
   _log = new Logger("utils-cfg");
