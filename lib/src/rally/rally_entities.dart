@@ -347,6 +347,7 @@ abstract class RDWorkItem extends RDEntity {
   bool _expedite;
   RDIteration _iteration;
   RDScheduleState _scheduleState;
+  String _rank;
 
   String get name => _name;
 
@@ -378,6 +379,8 @@ abstract class RDWorkItem extends RDEntity {
 
   RDScheduleState get scheduleState => _scheduleState;
 
+  String get rank => _rank;
+
   RDWorkItem._internalFromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
     _formattedID = map['FormattedID'];
@@ -388,6 +391,7 @@ abstract class RDWorkItem extends RDEntity {
     _ready = map['Ready'];
     _creationDate = DateTime.parse(map['CreationDate']);
     _lastUpdateDate = DateTime.parse(map['LastUpdateDate']);
+    _rank = map['DragAndDropRank'];
     List myTags = map['Tags']['_tagsNameArray'];
     if (myTags != null && myTags.length > 0) {
       _tags = new SplayTreeSet<String>((String v1, String v2) {

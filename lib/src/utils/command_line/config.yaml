@@ -1,0 +1,16 @@
+mailer:
+  host: posteio.emergya.com
+  user: team-green@servicios.emergya.com
+  pass: j43vDvgT6g
+  secured: true
+
+rallydev:
+  user: mruiz1@emergya.com
+  pass: EmergyaG0rd0n
+
+# Levels: ALL, FINEST, FINER, FINE, CONFIG, INFO, WARNING, SEVERE, SHOUT, OFF
+log:
+  level: INFO
+  custom:
+    #- rd-proxy: FINER
+

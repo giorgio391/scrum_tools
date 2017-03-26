@@ -1,3 +1,5 @@
+import 'dart:async';
+
 RegExp _durationRegExp = new RegExp(
     r'^[0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9][0-9][0-9][0-9]$');
 RegExp _splitDurationRegExp = new RegExp(r':|\.');
@@ -53,5 +55,15 @@ abstract class Mappable {
 
 abstract class MappableWithDate extends Mappable {
   DateTime get date;
+}
+
+abstract class ScrumHttpClient {
+
+  Future<String> getString(String url);
+
+  void handleError(Completer completer, dynamic error);
+
+  void close({bool force});
+
 }
 

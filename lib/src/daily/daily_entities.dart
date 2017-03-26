@@ -51,7 +51,7 @@ class Environment implements Comparable<Environment> {
   }
 }
 
-class Scope {
+class Scope implements Comparable<Scope> {
 
   static const PAST = const Scope._internal('PAST');
   static const TODAY = const Scope._internal('TODAY');
@@ -77,28 +77,35 @@ class Scope {
     return null;
   }
 
+  int compareTo(Scope other) {
+    if (this == other) return 0;
+    if (this == PAST) return -1;
+    return 1;
+  }
+
   @override
   String toString() {
     return value;
   }
 }
 
-class Process {
+class Process implements Comparable<Process> {
 
-  static const CI = const Process._internal('CI');
-  static const DEFINITION = const Process._internal('DEFINITION');
-  static const DEPLOYMENT = const Process._internal('DEPLOYMENT');
-  static const DEVELOPMENT = const Process._internal('DEVELOPMENT');
-  static const INQUIRIES = const Process._internal('INQUIRIES');
+  static const DEFINITION = const Process._internal(0, 'DEFINITION');
+  static const DEVELOPMENT = const Process._internal(1, 'DEVELOPMENT');
+  static const CI = const Process._internal(2, 'CI');
+  static const DEPLOYMENT = const Process._internal(3, 'DEPLOYMENT');
+  static const INQUIRIES = const Process._internal(4, 'INQUIRIES');
 
   static final List<Process> VALUES = new List.unmodifiable(
-      [CI, DEFINITION, DEPLOYMENT, DEVELOPMENT, INQUIRIES]);
+      [DEFINITION, DEVELOPMENT, CI, DEPLOYMENT, INQUIRIES]);
 
   final String _value;
+  final int _order;
 
   String get value => _value;
 
-  const Process._internal(this._value);
+  const Process._internal(this._order, this._value);
 
   factory Process(String value) {
     return parse(value);
@@ -112,6 +119,8 @@ class Process {
     }
     return null;
   }
+
+  int compareTo(Process other) => other._order - this._order;
 
   @override
   String toString() {
@@ -429,6 +438,10 @@ class DailyReport implements MappableWithDate {
 
   factory DailyReport.clone(DailyReport report) {
     return report != null ? new DailyReport.fromMap(report.toMap()) : null;
+  }
+
+  void sortEntries(Comparator<DailyEntry> comparator) {
+    if (_entries != null) _entries.sort(comparator);
   }
 
   Map<String, Object> toMap() {

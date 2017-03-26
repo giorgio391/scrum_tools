@@ -20,16 +20,18 @@ void main(List<String> args) {
     }
   }();
 
-  bool commandFound = false;
-  for (String commandName in commands.keys) {
-    String option = argResults[commandName];
-    if (option != null) {
-      try {
-        commands[commandName].execute(commandName, argResults, option);
-        commandFound = true;
-      } on FormatException {}
+  loadConfig().then((_) {
+    bool commandFound = false;
+    for (String commandName in commands.keys) {
+      String option = argResults[commandName];
+      if (option != null) {
+        try {
+          commands[commandName].execute(commandName, argResults, option);
+          commandFound = true;
+        } on FormatException {}
+      }
     }
-  }
 
-  if (!commandFound) print(argParser.usage);
+    if (!commandFound) print(argParser.usage);
+  });
 }

@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 import 'package:prompt/prompt.dart';
 import 'package:start/start.dart';
-import 'package:scrum_tools/src/utils/cache.dart';
 import 'package:scrum_tools/src/server/config.dart';
+import 'package:scrum_tools/src/server/rally_proxy.dart';
 import 'package:scrum_tools/src/server/rest/rest_server.dart';
 
 const webDirArg = 'web-dir';
@@ -28,11 +27,8 @@ typedef void ServerInitializer(Server appServer);
 /// The most simple usage would be passing "-w!" as arguments after a plain
 /// _dart build_.
 Future main(List<String> arguments) async {
-  // Initialize logging
-  Logger.root.level = Level.ALL;
-  Logger.root.onRecord.listen((rec) {
-    print('${rec.level.name}: ${rec.time}: ${rec.message}');
-  });
+
+  Config cfg = new Config();
   // ----
   Logger _log = new Logger('main');
   // ----
@@ -151,13 +147,12 @@ Future main(List<String> arguments) async {
       }
       return argResults[rdPassArg];
     }();
-    _RDProxy rdProxy = new _RDProxy(user, pass);
+    RallyDevProxy rdProxy = new RallyDevProxy(user, pass);
     initializers.add(rdProxy.init);
   }
 
   // Start REST API
   if (argResults[restArg] == true) {
-    Config cfg = new Config();
     RestServer restServer = cfg.restServer;
     initializers.add(restServer.init);
   }
@@ -301,71 +296,3 @@ class _Group {
 
 }
 // ******** WEB SOCKET GROUPS SERVICE *** END ******************
-
-// ******** RALLYDEV PROXY SERVICE *** START *******************
-
-class _RDProxy {
-
-  static const String _baseUrl =
-      'https://rally1.rallydev.com/slm/webservice/v2.0';
-
-  static final Uri _baseUri = Uri.parse(_baseUrl);
-
-  Logger _log = new Logger("rd-proxy");
-
-  Cache<String, String> _cache;
-  HttpClient _httpClient;
-
-  String _user, _pass, _pathRoot;
-
-  _RDProxy(this._user, this._pass, [this._pathRoot = '/rd']);
-
-  void init(Server appServer) {
-    _cache = new Cache<String, String>();
-    _cache.retriever = _handle;
-
-    HttpClientBasicCredentials credentials =
-    new HttpClientBasicCredentials(_user, _pass);
-
-    _httpClient = new HttpClient();
-    _httpClient.addCredentials(_baseUri, 'Rally ALM', credentials);
-
-    // Process any 'get' request.
-    appServer.get(new RegExp("${_pathRoot}/.*")).listen((Request request) {
-      Response response = request.response;
-      String path = request.path;
-      response.header('Content-Type', 'application/json; charset=UTF-8');
-      if (path == '${_pathRoot}/status') {
-        response.send('{"status": "OK"}');
-      } else {
-        String requestedUri = request.input.requestedUri.toString();
-        String uriPart = requestedUri.substring(
-            requestedUri.indexOf('${_pathRoot}/') + _pathRoot.length);
-        _cache.get(uriPart).then((String value) {
-          response.send(value);
-        });
-      }
-    });
-    _log.info('Rallydev proxy ready at [${_pathRoot}].');
-  }
-
-  // Delegate the call to the Rallydev server.
-  Future<String> _handle(String uriPart) {
-    Uri uri = Uri.parse('${_baseUrl}${uriPart}');
-    Completer <String> completer = new Completer <String>();
-    _httpClient.getUrl(uri).then((HttpClientRequest request) {
-      request.close().then((HttpClientResponse response) {
-        StringBuffer sb = new StringBuffer();
-        response.transform(UTF8.decoder).listen((content) {
-          sb.write(content);
-        })
-          ..onDone(() {
-            completer.complete(sb.toString());
-          });
-      });
-    });
-    return completer.future;
-  }
-}
-
-// ******** RALLYDEV PROXY SERVICE *** END *********************

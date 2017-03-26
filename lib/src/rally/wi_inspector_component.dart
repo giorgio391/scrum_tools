@@ -2,12 +2,18 @@ import 'dart:async';
 import 'package:angular2/core.dart';
 import 'package:scrum_tools/scrum_tools_rally.dart';
 import 'package:scrum_tools/src/utils/simple_editor.dart';
+import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/web_socket_service.dart';
+import 'package:scrum_tools/src/utils/scrum_http/browser_client.dart';
 
 @Component(selector: 'wi-inspector',
     templateUrl: 'wi_inspector_component.html',
     styleUrls: const ['wi_inspector_component.css'],
-    providers: const [RallyService, WorkItemValidationService],
+    providers: const [
+      const Provider(ScrumHttpClient, useClass: BrowserScrumHttpClient),
+      RallyService,
+      WorkItemValidationService
+    ],
     directives: const [SimpleEditor, WorkItem, WorkItemValidation]
 )
 class WorkItemInspector {

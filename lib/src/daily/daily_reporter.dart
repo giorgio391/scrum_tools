@@ -10,12 +10,14 @@ import 'package:scrum_tools/src/daily/daily_entry.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command.dart';
 import 'package:scrum_tools/src/rest_service.dart';
+import 'package:scrum_tools/src/utils/scrum_http/browser_client.dart';
 
 @Component(selector: 'daily-reporter',
     templateUrl: 'daily_reporter.html',
     styleUrls: const['daily_reporter.css'],
     directives: const [DailyForm, DailyEntryView],
     providers: const [
+      const Provider(ScrumHttpClient, useClass: BrowserScrumHttpClient),
       RallyService,
       DailyEventBus,
       WebSocketService,

@@ -19,6 +19,33 @@ String _home = Platform.environment['HOME'] ??
 
 typedef T _builderFromMap<T>(Map<String, dynamic> map);
 
+typedef T _transformer<T>(T value);
+
+int compareEntryLogically(DailyEntry entry1, DailyEntry entry2) {
+  if (entry1 == entry2) return 0;
+  if (entry1 != null && entry2 == null) return 1;
+  if (entry1 == null && entry2 != null) return -1;
+
+  if (entry1.scope != entry2.scope) return entry1.scope.compareTo(entry2.scope);
+
+  if (hasValue(entry1.workItemCode) && !hasValue(entry2.workItemCode))
+    return 1;
+
+  if (!hasValue(entry1.workItemCode) && hasValue(entry2.workItemCode))
+    return -1;
+
+  if (entry1.workItemCode != entry2.workItemCode)
+    return entry1.workItemCode.compareTo(entry2.workItemCode);
+
+  if (entry1.process != entry2.process)
+    return entry1.process.compareTo(entry2.process);
+
+  if (entry1.teamMemberCode != entry2.teamMemberCode)
+    return entry1.teamMemberCode.compareTo(entry2.teamMemberCode);
+
+  return 0;
+}
+
 Future _createDirs(List<Directory> dirs) async {
   for (Directory dir in dirs) {
     await _createDir(dir);
@@ -52,6 +79,7 @@ String _2Digits(int value) {
   String val = value.toString();
   return val.length < 2 ? '0$val' : val;
 }
+
 
 //========================================================================
 
@@ -112,19 +140,22 @@ class _DateBasedRepo<T extends MappableWithDate> {
       if (contents.length == 1 && number == 0) break;
       d = number > 0 ? d.subtract(_oneDay) : d.add(_oneDay);
     }
-    if (attemtps >= _maxLastAttemtps) _log.severe(
+    if (attemtps >= _maxLastAttemtps) _log.warning(
         '_maxLastAttemtps [${_maxLastAttemtps}] reached.');
     return contents.length == 0 ? null : contents;
   }
 
-  List<T> _getLastObjects(DateTime date, int number) {
+  List<T> _getLastObjects(DateTime date, int number,
+      {_transformer transformer}) {
     List<String> contents = _getLastContent(date, number);
     if (contents != null && contents.isNotEmpty) {
       List<T> objects = [];
       contents.forEach((String content) {
-        objects.add(_objectBuilder(JSON.decode(content)));
+        T obj = _objectBuilder(JSON.decode(content));
+        if (transformer != null) obj = transformer(obj);
+        if (obj != null) objects.add(obj);
       });
-      return objects;
+      return hasValue(objects) ? objects : null;
     }
     return null;
   }
@@ -200,8 +231,13 @@ class DailyFileDAO implements DailyDAO {
   @override
   Future<List<DailyReport>> getLastDailyReports(
       {DateTime dateReference, int number: 1}) {
-    return new Future.value(_dailyRepo._getLastObjects(
-        dateReference ?? new DateTime.now(), number));
+    List<DailyReport> list = _dailyRepo._getLastObjects(
+        dateReference ?? new DateTime.now(), number,
+        transformer: (DailyReport report) {
+          //report.sortEntries(compareEntryLogically);
+          return report;
+        });
+    return new Future.value(list);
   }
 
   @override
@@ -221,10 +257,4 @@ class DailyFileDAO implements DailyDAO {
   }
   */
 
-}
-
-void main(List<String> args) {
-  // for testing
-
-  print(_home);
 }
