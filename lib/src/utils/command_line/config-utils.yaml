@@ -1,12 +1,12 @@
 mailer-1:
   host: posteio.emergya.com
   user: team-green@servicios.emergya.com
-  pass: j43vDvgT6g
+  pass: mailer-1
   secured: true
 
 rallydev:
   user: mruiz1@emergya.com
-  pass: EmergyaG0rd0n
+  pass: rallydev
 
 # Levels: ALL, FINEST, FINER, FINE, CONFIG, INFO, WARNING, SEVERE, SHOUT, OFF
 log:

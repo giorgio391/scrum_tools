@@ -26,15 +26,24 @@ const Map<String, UtilOptionCommand> commands = const {
 // **************************************************************************
 
 Map<String, dynamic> _cfgMap;
+Map<String, dynamic> _passMap;
+
 Logger _log;
 
 Map<String, dynamic> cfgMap(String key) => _cfgMap[key];
 
 Future loadConfig() async {
   Resource cfgResource = new Resource(
-      "package:scrum_tools/src/utils/command_line/config.yaml");
+      "package:scrum_tools/src/utils/command_line/config-utils.yaml");
+
+  Resource passResource = new Resource("package:scrum_tools/assets/pass.yaml");
+
   String cfgString = await cfgResource.readAsString(encoding: UTF8);
   _cfgMap = loadYaml(cfgString);
+
+  String passString = await passResource.readAsString(encoding: UTF8);
+  _passMap = loadYaml(passString);
+
   // --------------------
   String logLevel = _cfgMap['log']['level'];
   Level level = _resolveLogLevelByName(logLevel);
@@ -78,10 +87,12 @@ void _customizeLogs() {
 
 Function _cfgResolver = () => _cfgMap;
 
+String getPass(String key) => _passMap[key];
+
 Function _scrumHttpClientResolver = () {
   Map<String, dynamic> cfg = _cfgResolver();
   String user = cfg['rallydev']['user'];
-  String pass = cfg['rallydev']['pass'];
+  String pass = getPass(cfg['rallydev']['pass']);
   ScrumHttpClient scrumHttpClient = new RallyDevProxy(user, pass);
   _scrumHttpClientResolver = () => scrumHttpClient;
   return scrumHttpClient;
