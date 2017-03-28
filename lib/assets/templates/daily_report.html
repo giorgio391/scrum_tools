@@ -1,0 +1,163 @@
+<table style="font-family: Helvetica, Arial, Sans-Serif; border: 1px solid lightgrey; padding: 5px;" width="100%">
+    <thead>
+    <tr style="font-size: larger;">
+        <th class="report-title" colspan="6" width="100%">Daily report {{startDate}} &gt;&gt; {{endDate}}</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{#development?}}
+    <tr>
+        <td class="title"
+            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            colspan="6" width="100%">
+            DEVELOPMENT
+        </td>
+    </tr>
+    <tr style="color: white; font-weight: bold; font-size: smaller;">
+        <td class="description-title" colspan="2" style="background: darkgrey; padding: 4px;">Description</td>
+        <td class="previous-plan-status-title" title="Previously planned status."
+            style="background: darkgrey; padding: 4px; text-align: center;">Prev. Plan
+        </td>
+        <td class="reported-status-title" title="Reported status."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Reported st.
+        </td>
+        <td class="next-status-title" title="Planned next status."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
+        </td>
+        <td class="hours-title" title="Accumul. hours"
+            style="background: darkgrey; padding: 4px;  text-align: center;">C. hours
+        </td>
+    </tr>
+    {{#developmentEntries}}
+    <tr style="background: {{backColor}};">
+        {{#workItem?}}
+        <td class="wi-code" title="Work item code." style="font-weight: bold; padding: 4px;" valign="top"><a
+                href="https://rally1.rallydev.com/#/55308115013d/search?keywords=DE5887" target="_blank"
+                style="text-decoration: none;">{{workItemCode}}</a></td>
+        <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">{{workItemTitle}}</td>
+        {{/workItem?}}
+        {{^workItem?}}
+        <td class="statement" title="Statement." colspan="2" valign="top" style="padding: 4px;">{{statement}}
+        </td>
+        {{/workItem?}}
+        <td class="previous-plan-status" title="Previously planned status." style="text-align: center; padding: 4px;"
+            valign="top">{{previousPlannedStatus}}
+        </td>
+        <td class="reported-status" title="Reported status." style="text-align: center; padding: 4px;" valign="top">
+            {{reportedStatus}}
+        </td>
+        <td class="next-status" title="Planned next status." style="text-align: center; padding: 4px;" valign="top">
+            {{plannedStatus}}
+        </td>
+        <td class="hours" title="Accumulated hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
+        </td>
+    </tr>
+    {{/developmentEntries}}
+    {{/development?}}
+    {{#inquiries?}}
+    <tr>
+        <td class="title"
+            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            colspan="6">INQUIRIES
+        </td>
+    </tr>
+    <tr style="color: white; font-weight: bold; font-size: smaller;">
+        <td class="description-title" colspan="2" style="background: darkgrey; padding: 4px;">Description</td>
+        <td class="previous-plan-status-title" title="Previously planned status."
+            style="background: darkgrey; padding: 4px; text-align: center;">Prev. Plan
+        </td>
+        <td class="reported-status-title" title="Reported status."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Reported st.
+        </td>
+        <td class="next-status-title" title="Planned next status."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
+        </td>
+        <td class="hours-title" title="Accumul. hours"
+            style="background: darkgrey; padding: 4px;  text-align: center;">C. hours
+        </td>
+    </tr>
+    {{#inquiriesEntries}}
+    <tr style="background: {{backColor}};">
+        <td class="statement" title="Statement." colspan="2" valign="top" style="padding: 4px;">{{statement}}
+        </td>
+        <td class="previous-plan-status" title="Previously planned status." style="text-align: center; padding: 4px;"
+            valign="top">{{previousPlannedStatus}}
+        </td>
+        <td class="reported-status" title="Reported status." style="text-align: center; padding: 4px;" valign="top">
+            {{reportedStatus}}
+        </td>
+        <td class="next-status" title="Planned next status." style="text-align: center; padding: 4px;" valign="top">
+            {{plannedStatus}}
+        </td>
+        <td class="hours" title="Accumulated hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
+        </td>
+    </tr>
+    {{/inquiriesEntries}}
+    {{/inquiries?}}
+    <tr>
+        <td class="title"
+            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            colspan="6">DEPLOYMENTS
+        </td>
+    </tr>
+    <tr>
+        <td colspan="6">
+            <table width="100%">
+                <tr>
+                    <td width="50%">
+                        <table width="100%">
+                            <tr>
+                                <td class="title"
+                                    style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+                                    width="100%" colspan="1">REPORTED
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="deployments" colspan="6" width="100%"
+                                    style="text-align: center; font-size: smaller;">
+                                    &nbsp;
+                                    {{#reportedDeployments?}}
+                                    <span style="color: darkgrey;">|</span>
+                                    {{#reportedDeployments}}
+                                    &nbsp;{{environment}}&nbsp;&gt;&gt;&nbsp;{{status}}&nbsp;<span
+                                        style="color: darkgrey;">|</span>
+                                    {{/reportedDeployments}}
+                                    {{/reportedDeployments?}}&nbsp;
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                    <td width="50%">
+                        <table width="100%">
+                            <tr>
+                                <td class="title"
+                                    style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+                                    width="100%" colspan="1">PLANNED
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="deployments" colspan="6" style="text-align: center; font-size: smaller;"
+                                    width="100%">
+                                    &nbsp;
+                                    {{#plannedDeployments?}}
+                                    <span style="color: darkgrey;">|</span>
+                                    {{#plannedDeployments}}
+                                    &nbsp;{{environment}}&nbsp;&gt;&gt;&nbsp;{{status}}&nbsp;<span
+                                        style="color: darkgrey;">|</span>
+                                    {{/plannedDeployments}}
+                                    {{/plannedDeployments?}}
+                                    &nbsp;
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tbody>
+</table>
+

@@ -1,12 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show stdout, stderr;
+
 import 'package:logging/logging.dart';
-import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
-import 'package:scrum_tools/src/utils/command_line/config.dart';
+import 'package:mustache4dart/mustache4dart.dart';
+import 'package:resource/resource.dart';
+
 import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
+import 'package:scrum_tools/src/utils/command_line/config.dart';
+import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
+import 'package:scrum_tools/src/utils/mailer.dart';
+
 
 class ListDailies extends UtilOptionCommand {
 
@@ -43,7 +49,7 @@ class SpreadDaily extends UtilOptionCommand {
   String get help => r'Utility to spread dailies.';
 
   void executeOption(String option) {
-    Map<String, dynamic> conf = cfgMap('spread_daily')['conf-${option}'];
+    Map<String, dynamic> conf = cfgValue('spread_daily')['conf-${option}'];
     int number = conf['number'];
     _executeOption(number, conf);
   }
@@ -56,10 +62,42 @@ class SpreadDaily extends UtilOptionCommand {
       } else {
         _ConsolidatedDailyReport cReport = new _ConsolidatedDailyReport(
             reports);
-        if ('html' == conf['mode']) {
+        /*if ('html' == conf['mode']) {
           _HtmlBuilder _htmlBuilder = new _HtmlBuilder();
           _htmlBuilder._consolidatedReportHtml(cReport).then((String html) {
             if (conf['out']) print(html);
+          }).catchError((error) {
+            _log.severe(error);
+          });
+        } else {
+          _printReport(cReport);
+        }*/
+        if ('html' == conf['mode']) {
+          _ContextMapBuilder builder = new _ContextMapBuilder();
+          builder._createMap(cReport).then((Map<String, dynamic> context) {
+            if (context != null) {
+              String resourceKey = 'package:${cfgValue(
+                  'templates')}/${conf['template']}';
+              Resource cfgResource = new Resource(resourceKey);
+              cfgResource.readAsString(encoding: UTF8).then((String template) {
+                String html = render(template, context);
+                if (conf['out']) print(html);
+                if (conf['mail'] != null) {
+                  Mailer mailer = new Mailer.fromMap(conf['mail']);
+                  mailer.sendHtml('[PSNow] Daily report ${_formatDate(
+                      cReport._startDate)} >> ${_formatDate(cReport._endDate)}',
+                      html).then((_) {
+                    print("Email sent. OK!");
+                  }).catchError((error) {
+                    _log.severe(error);
+                  });
+                }
+              }).catchError((error) {
+                _log.severe(error);
+              });
+            } else {
+              stderr.writeln('No context for HTML.');
+            }
           }).catchError((error) {
             _log.severe(error);
           });
@@ -90,11 +128,9 @@ class SpreadDaily extends UtilOptionCommand {
           return _printEntries(r'INQUIRIES', inquiryEntries);
         });
       }
-      if (hasValue(report._deploymentPlan)) {
-        entriesPrinter.add(() {
-          return _printDeploymentPlan(report);
-        });
-      }
+      entriesPrinter.add(() {
+        return _printDeployments(report);
+      });
       if (!hasValue(entriesPrinter)) {
         print(r"*** No entries. ***");
       } else {
@@ -119,15 +155,30 @@ class SpreadDaily extends UtilOptionCommand {
     }
   }
 
-  _printDeploymentPlan(_ConsolidatedDailyReport report) {
-    if (report != null && hasValue(report._deploymentPlan)) {
-      _printTitle(r'DEPLOYMENT PLAN');
-      Environment.VALUES.forEach((Environment env) {
-        if (report._deploymentPlan[env] != null) {
-          stdout.write(
-              '- ${env.value} >> ${report._deploymentPlan[env].value} ');
-        }
-      });
+  _printDeployments(_ConsolidatedDailyReport report) {
+    if (report != null && (hasValue(report._deploymentPlan) ||
+        hasValue(report._deploymentReported))) {
+      _printTitle(r'DEPLOYMENTS');
+      if (hasValue(report._deploymentReported)) {
+        stdout.write('[REPORTED: ');
+        Environment.VALUES.forEach((Environment env) {
+          if (report._deploymentReported[env] != null) {
+            stdout.write(
+                '- ${env.value} >> ${report._deploymentReported[env].value} ');
+          }
+        });
+        stdout.write(']');
+      }
+      if (hasValue(report._deploymentPlan)) {
+        stdout.write('[PLANNED: ');
+        Environment.VALUES.forEach((Environment env) {
+          if (report._deploymentPlan[env] != null) {
+            stdout.write(
+                '- ${env.value} >> ${report._deploymentPlan[env].value} ');
+          }
+        });
+        stdout.write(']');
+      }
       stdout.writeln();
       stdout.writeln();
     }
@@ -138,7 +189,7 @@ class SpreadDaily extends UtilOptionCommand {
     if (hasValue(entries)) {
       _printTitle(title);
       print(
-          r'Description                                                                      Prev. Plan   Current stat Plan status  C. hours');
+          r'Description                                                                      Prev. Plan   Reported st. Plan status  C. hours');
       print(
           r'-------------------------------------------------------------------------------- ------------ ------------ ------------ --------');
       _findWorkItemNames(entries).then((Map<String, String> names) {
@@ -174,7 +225,7 @@ class SpreadDaily extends UtilOptionCommand {
     //String description = entry._key;
     String s = "${_formatString(description, 80)} :: "
         "${_formatStatus(entry._previousPlannedStatus)} >> "
-        "${_formatStatus(entry._currentStatus)} >> "
+        "${_formatStatus(entry._reportedStatus)} >> "
         "${_formatStatus(entry._plannedStatus)} :: "
         "${_formatDouble(entry._hours)}";
     print(s);
@@ -256,6 +307,7 @@ class _ConsolidatedDailyReport {
   Map<String, _StandardDailyEntry> _devEntriesMap = {};
   Map<String, _StandardDailyEntry> _inquiriesEntriesMap = {};
   Map<Environment, Status> _deploymentPlan = {};
+  Map<Environment, Status> _deploymentReported = {};
 
   _ConsolidatedDailyReport(Iterable<DailyReport> reports) {
     _digestDailyReports(reports);
@@ -324,19 +376,19 @@ class _ConsolidatedDailyReport {
         if (myEntry == null) {
           myEntry = new _StandardDailyEntry()
             .._key = key
-            .._rank = 'z$key'
+            .._rank = hasValue(entry.workItemCode) ? key : 'z$key'
             .._isWorkItem = hasValue(entry.workItemCode);
           targetMap[key] = myEntry;
         }
         if (entry.scope == Scope.PAST) {
           if (entry.hours != null) myEntry._hours = myEntry._hours == null ?
           entry.hours : myEntry._hours + entry.hours;
-          if (myEntry._currentStatus == null ||
-              myEntry._currentStatusDate.isBefore(date) ||
-              (myEntry._currentStatusDate == date &&
-                  myEntry._currentStatus < entry.status)) {
-            myEntry._currentStatus = entry.status;
-            myEntry._currentStatusDate = date;
+          if (myEntry._reportedStatus == null ||
+              myEntry._reportedStatusDate.isBefore(date) ||
+              (myEntry._reportedStatusDate == date &&
+                  myEntry._reportedStatus < entry.status)) {
+            myEntry._reportedStatus = entry.status;
+            myEntry._reportedStatusDate = date;
           }
         } else {
           if (date == _endDate) {
@@ -354,15 +406,23 @@ class _ConsolidatedDailyReport {
             }
           }
         }
-      } else
-      if (entry.process == Process.DEPLOYMENT && entry.scope == Scope.TODAY &&
+      } else if (entry.process == Process.DEPLOYMENT && date == _endDate &&
           hasValue(entry.environments)) {
-        entry.environments.forEach((Environment env) {
-          if (_deploymentPlan[env] == null ||
-              _deploymentPlan[env] < entry.status) {
-            _deploymentPlan[env] = entry.status;
-          }
-        });
+        if (entry.scope == Scope.TODAY) {
+          entry.environments.forEach((Environment env) {
+            if (_deploymentPlan[env] == null ||
+                _deploymentPlan[env] < entry.status) {
+              _deploymentPlan[env] = entry.status;
+            }
+          });
+        } else {
+          entry.environments.forEach((Environment env) {
+            if (_deploymentReported[env] == null ||
+                _deploymentReported[env] < entry.status) {
+              _deploymentReported[env] = entry.status;
+            }
+          });
+        }
       }
     }
   }
@@ -376,8 +436,8 @@ class _StandardDailyEntry {
   Status _plannedStatus;
   Status _previousPlannedStatus;
   DateTime _previousPlannedStatusDate;
-  Status _currentStatus;
-  DateTime _currentStatusDate;
+  Status _reportedStatus;
+  DateTime _reportedStatusDate;
   double _hours;
 
 }
@@ -420,7 +480,7 @@ class _HtmlBuilder {
       }
       if (hasValue(report._deploymentPlan)) {
         entriesPrinter.add(() {
-          return _printDeploymentPlan(report);
+          return _printDeployments(report);
         });
       }
       if (!hasValue(entriesPrinter)) {
@@ -463,9 +523,9 @@ class _HtmlBuilder {
       _buffer.write(_htmlEscape.convert(r'Prev. Plan'));
       _buffer.write(r'</td>');
       _buffer.write(
-          r'<td class="current-status-title" title="Current status." '
+          r'<td class="reported-status-title" title="Reported status." '
           r'style="background: darkgrey; padding: 4px;  text-align: center;">');
-      _buffer.write(_htmlEscape.convert(r'Current stat'));
+      _buffer.write(_htmlEscape.convert(r'Reported st.'));
       _buffer.write(r'</td>');
       _buffer.write(
           r'<td class="next-status-title" title="Planned next status." '
@@ -506,8 +566,11 @@ class _HtmlBuilder {
     if (entry._isWorkItem) {
       _buffer.write(r'<td class="wi-code" title="Work item code." '
       r'style="font-weight: bold; padding: 4px;" valign="top">');
+      _buffer.write(
+          '<a href="https://rally1.rallydev.com/#/55308115013d/search?keywords='
+              '${entry._key}" target="_blank" style="text-decoration: none;">');
       _buffer.write(_htmlEscape.convert(entry._key));
-      _buffer.write(r'</td>');
+      _buffer.write(r'</a></td>');
       _buffer.write(r'<td class="wi-title" title="Work item title." '
       r'valign="top" style="padding: 4px;">');
       if (hasValue(workItemNames[entry._key])) {
@@ -529,10 +592,10 @@ class _HtmlBuilder {
         _htmlEscape.convert(entry._previousPlannedStatus.toString()));
     _buffer.write(r'</td>');
     _buffer.write(
-        r'<td class="current-status" title="Current status." '
+        r'<td class="reported-status" title="Reported status." '
         r'style="text-align: center; padding: 4px;" valign="top">');
-    _buffer.write(entry._currentStatus == null ? r'-' :
-    _htmlEscape.convert(entry._currentStatus.toString()));
+    _buffer.write(entry._reportedStatus == null ? r'-' :
+    _htmlEscape.convert(entry._reportedStatus.toString()));
     _buffer.write(r'</td>');
     _buffer.write(
         r'<td class="next-status" title="Planned next status." '
@@ -546,33 +609,198 @@ class _HtmlBuilder {
     _buffer.write(r'</td>');
   }
 
-  void _printTitle(String title) {
+  void _printTitle(String title, {int col: _columns}) {
     if (hasValue(title)) {
       _buffer.write(
           '<tr><td class="title" style="text-align: center; '
               'border-top: 1px solid lightgrey; '
               'border-bottom: 1px solid lightgrey; '
-              'font-size: smaller; font-weight: bold;" colspan="${_columns}">');
+              'font-size: smaller; font-weight: bold;" colspan="${col}">');
       _buffer.write(_htmlEscape.convert(title));
       _buffer.writeln(r'</td></tr>');
     }
   }
 
-  void _printDeploymentPlan(_ConsolidatedDailyReport report) {
-    if (report != null && hasValue(report._deploymentPlan)) {
-      _printTitle(r'DEPLOYMENT PLAN');
-      _buffer.write('<tr><td class="deployments" colspan="${_columns}" '
-          'style="text-align: center; font-size: smaller;"'
-          '><span style="color: darkgrey;">|</span>');
+  void _printDeployments(_ConsolidatedDailyReport report) {
+    if (report != null && (hasValue(report._deploymentPlan) ||
+        hasValue(report._deploymentReported))) {
+      _printTitle(r'DEPLOYMENTS');
+      int col1 = (_columns / 2).floor();
+      int col2 = _columns - col1;
+      _buffer.write(r'<tr>');
+      _buffer.write('<td colspane="${col1}"><table><body>');
+      _printTitle(r'REPORTED', col: 1);
+      if (hasValue(report._deploymentReported)) {
+        _buffer.write('<tr><td class="deployments" colspan="${_columns}" '
+            'style="text-align: center; font-size: smaller;"'
+            '><span style="color: darkgrey;">|</span>');
+        Environment.VALUES.forEach((Environment env) {
+          if (report._deploymentReported[env] != null) {
+            _buffer.write(
+                '&nbsp;${env.toString()}&nbsp;${_htmlEscape.convert(
+                    '>>')}&nbsp;${report._deploymentReported[env]
+                    .toString()}&nbsp;<span style="color: darkgrey;">|</span>');
+          }
+        });
+        _buffer.writeln(r'</td></tr>');
+      }
+      _buffer.write('</body></table></td>');
+      _buffer.write('<td colspane="${col2}"><table><body>');
+      _printTitle(r'PLANNED', col: 1);
+      if (hasValue(report._deploymentPlan)) {
+        _buffer.write('<tr><td class="deployments" colspan="${_columns}" '
+            'style="text-align: center; font-size: smaller;"'
+            '><span style="color: darkgrey;">|</span>');
+        Environment.VALUES.forEach((Environment env) {
+          if (report._deploymentPlan[env] != null) {
+            _buffer.write(
+                '&nbsp;${env.toString()}&nbsp;${_htmlEscape.convert(
+                    '>>')}&nbsp;${report._deploymentPlan[env]
+                    .toString()}&nbsp;<span style="color: darkgrey;">|</span>');
+          }
+        });
+        _buffer.writeln(r'</td></tr>');
+      }
+      _buffer.write('</body></table></td>');
+    }
+  }
+}
+
+class _ContextMapBuilder {
+
+  static Logger _log = SpreadDaily._log;
+
+  Future<Map<String, dynamic>> _createMap(_ConsolidatedDailyReport report) {
+    Completer<Map<String, dynamic>> completer = new Completer<
+        Map<String, dynamic>>();
+    if (report != null) {
+      Map<String, dynamic> map = {
+        'startDate': _formatDate(report._startDate),
+        'endDate': _formatDate(report._endDate)
+      };
+      List generatorModel = [];
+
+
+      Iterable<_StandardDailyEntry> devEntries = report._devEntriesByRank;
+      if (hasValue(devEntries)) {
+        map['development?'] = true;
+        generatorModel.add(() {
+          return _entries(devEntries)
+              .then((List list) {
+            map['developmentEntries'] = list;
+          });
+        });
+      }
+
+      Iterable<_StandardDailyEntry> inquiryEntries = report
+          ._inquiriesEntriesByRank;
+      if (hasValue(inquiryEntries)) {
+        map['inquiries?'] = true;
+        generatorModel.add(() {
+          return _entries(inquiryEntries)
+              .then((List list) {
+            map['inquiriesEntries'] = list;
+          });
+        });
+      }
+
+      generatorModel.add(() {
+        map['deployments'] = _deployments(report);
+        map['reportedDeployments'] = map['deployments']['reported'];
+        map['plannedDeployments'] = map['deployments']['planned'];
+        map['reportedDeployments?'] = hasValue(map['reportedDeployments']);
+        map['plannedDeployments?'] = hasValue(map['plannedDeployments']);
+        return map;
+      });
+
+
+      if (!hasValue(generatorModel)) {
+        completer.complete(null);
+      } else {
+        Future.forEach(generatorModel, (_mapGenerator) {
+          return _mapGenerator();
+        }).whenComplete(() {
+          rallyService.close();
+          completer.complete(map);
+        });
+      }
+    } else {
+      completer.complete(null);
+    }
+    return completer.future;
+  }
+
+  Future<List> _entries(Iterable<_StandardDailyEntry> entries) {
+    Completer<List> completer = new Completer<List>();
+    _findWorkItemNames(entries).then((Map<String, String> names) {
+      List list = [];
+      bool back = true;
+      entries.forEach((_StandardDailyEntry entry) {
+        Map map = _entryToMap(entry, names);
+        back = !back;
+        map ['backColor'] = back ? '#ECECEC' : 'white';
+        list.add(map);
+      });
+      stdout.writeln();
+      completer.complete(list);
+    }).catchError((error) {
+      _log.severe(error);
+      stderr.writeln(error);
+      completer.completeError(error);
+    });
+
+    return completer.future;
+  }
+
+  Map<String, dynamic> _entryToMap(_StandardDailyEntry entry,
+      Map<String, String> names) {
+    Map<String, dynamic> map = {};
+    if (entry._isWorkItem) {
+      map['workItem?'] = true;
+      map['workItemCode'] = entry._key;
+      map['workItemTitle'] = names[entry._key];
+    } else {
+      map['statement'] = entry._key;
+    }
+    map['previousPlannedStatus'] = entry._previousPlannedStatus == null ? r'-' :
+    entry._previousPlannedStatus.toString();
+    map['reportedStatus'] = entry._reportedStatus == null ? r'-' :
+    entry._reportedStatus.toString();
+    map['plannedStatus'] = entry._plannedStatus == null ? r'-' :
+    entry._plannedStatus.toString();
+    map['hours'] = _formatDouble(entry._hours);
+    return map;
+  }
+
+
+  Map _deployments(_ConsolidatedDailyReport report) {
+    Map map = {};
+    if (hasValue(report._deploymentReported)) {
+      List list = [];
       Environment.VALUES.forEach((Environment env) {
-        if (report._deploymentPlan[env] != null) {
-          _buffer.write(
-              '&nbsp;${env.toString()}&nbsp;${_htmlEscape.convert(
-                  '>>')}&nbsp;${report._deploymentPlan[env]
-                  .toString()}&nbsp;<span style="color: darkgrey;">|</span>');
+        if (report._deploymentReported[env] != null) {
+          list.add({
+            'environment': env.toString(),
+            'status': report._deploymentReported[env].toString()
+          });
         }
       });
-      _buffer.writeln(r'</td></tr>');
+      map['reported?'] = true;
+      map['reported'] = list;
     }
+    if (hasValue(report._deploymentPlan)) {
+      List list = [];
+      Environment.VALUES.forEach((Environment env) {
+        if (report._deploymentPlan[env] != null) {
+          list.add({
+            'environment': env.toString(),
+            'status': report._deploymentPlan[env].toString()
+          });
+        }
+      });
+      map['planned?'] = true;
+      map['planned'] = list;
+    }
+    return map;
   }
 }

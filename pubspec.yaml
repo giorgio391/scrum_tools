@@ -1,6 +1,6 @@
 name: scrum_tools
 description: Tools for Scrum
-version: 0.0.4
+version: 0.0.5
 author: Jorge Murcia <jorge@ondesta.es>
 environment:
   sdk: '>=1.19.0 <2.0.0'

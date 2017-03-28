@@ -30,7 +30,7 @@ Map<String, dynamic> _passMap;
 
 Logger _log;
 
-Map<String, dynamic> cfgMap(String key) => _cfgMap[key];
+dynamic cfgValue(String key) => _cfgMap[key];
 
 Future loadConfig() async {
   Resource cfgResource = new Resource(

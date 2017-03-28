@@ -291,7 +291,7 @@ int compareWIByFormattedID(RDWorkItem wi1, RDWorkItem wi2) {
   return wi1.formattedID.compareTo(wi2.formattedID);
 }
 
-int compareWIByPriority(RDWorkItem wi1, RDWorkItem wi2) {
+int compareWIByPrioritization(RDWorkItem wi1, RDWorkItem wi2) {
   if (wi1 == null && wi2 == null) return 0;
   if (wi1 != null && wi2 == null) return -1;
   if (wi1 == null && wi2 != null) return 1;
@@ -322,6 +322,7 @@ int compareWIByPriority(RDWorkItem wi1, RDWorkItem wi2) {
 }
 
 RDPriority _inferPriority(RDWorkItem workItem) =>
+// TODO look into milestones
     workItem is RDDefect ? workItem.priority : RDPriority.NORMAL;
 
 RDSeverity _inferSeverity(RDWorkItem workItem) =>

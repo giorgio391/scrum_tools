@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert' show UTF8;
 import 'package:logging/logging.dart';
+import 'package:resource/resource.dart';
+import 'package:yaml/yaml.dart';
 
 import 'package:scrum_tools/src/server/rest/rest_server.dart';
 import 'package:scrum_tools/src/server/dao/daily_dao.dart';
 import 'package:scrum_tools/src/server/dao/impl/daily_file_dao.dart';
-import 'package:resource/resource.dart';
-import 'package:yaml/yaml.dart';
 
 class Config {
 

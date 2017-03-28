@@ -14,12 +14,44 @@ log:
   custom:
     #- rd-proxy: FINER
 
+templates: scrum_tools/assets/templates
+
 spread_daily:
   conf-1:
     mode: text
     number: 2
     out: true
+    
   conf-2:
     mode: html
     number: 2
     out: true
+    template: daily_report.html
+  conf-3:
+    mode: html
+    number: 2
+    out: false
+    template: daily_report.html
+    mail:
+      host: posteio.emergya.com
+      name: psnow-dev-team
+      user: team-green@servicios.emergya.com
+      pass: mailer-1
+      secured: true
+      recipients: jmurcia@emergya.com
+      from_name: PSNow dev team
+  conf-team:
+    mode: html
+    number: 2
+    out: false
+    template: daily_report.html
+    mail:
+      host: posteio.emergya.com
+      name: psnow-dev-team
+      user: team-green@servicios.emergya.com
+      pass: mailer-1
+      secured: true
+      recipients: gordon-all@emergya.com
+      from_name: PSNow dev team
+
+

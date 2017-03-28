@@ -271,13 +271,19 @@ class RDIteration extends RDEntity implements Comparable<RDIteration> {
     _plannedVelocity = map['PlannedVelocity'];
   }
 
-  operator >(RDIteration other) =>
-      startDate != null && other.endDate != null &&
-          (startDate.isAfter(other.endDate) || startDate == other.endDate);
+  operator >(RDIteration other) {
+    if (startDate != null && other.endDate != null) {
+      return (startDate.isAfter(other.endDate) || startDate == other.endDate);
+    }
+    return name.compareTo(other.name) < 0;
+  }
 
-  operator <(RDIteration other) =>
-      endDate != null && other.startDate != null &&
-          (endDate.isBefore(other.startDate) || endDate == other.startDate);
+  operator <(RDIteration other) {
+    if (endDate != null && other.startDate != null) {
+      return endDate.isBefore(other.startDate) || endDate == other.startDate;
+    }
+    return name.compareTo(other.name) > 0;
+  }
 
   operator >=(RDIteration other) => objectID == other.objectID || this > other;
 
