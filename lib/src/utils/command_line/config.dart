@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert' show UTF8;
 
 import 'package:resource/resource.dart';
@@ -25,8 +26,63 @@ const Map<String, UtilOptionCommand> commands = const {
 
 // **************************************************************************
 
-Map<String, dynamic> _cfgMap;
+
+class _CfgMap extends UnmodifiableMapBase<String, dynamic> {
+
+  static const String extendsKey = r'~extends';
+
+  Map<String, dynamic> _superMap;
+  Map<String, dynamic> _innerMap;
+  Map<String, dynamic> _cache = {};
+  Iterable<String> _keys;
+
+  _CfgMap(this._innerMap) {
+    _keys = new UnmodifiableListView(
+        _innerMap.keys.where((String key) => key != extendsKey));
+    String superMapPath = _innerMap[extendsKey];
+    if (hasValue(superMapPath)) {
+      Iterable<String> pathItems = superMapPath.split(r'/');
+      Map<String, dynamic> map;
+      pathItems.forEach((String s) {
+        if (map == null)
+          map = new _CfgMap(_originalConfigMap[s]);
+        else
+          map = map[s];
+      });
+      _superMap = map;
+    }
+  }
+
+  @override
+  Iterable<String> get keys => _keys;
+
+  @override
+  dynamic operator [](String key) {
+    if (extendsKey == key) throw new UnsupportedError(
+        'Unsupported key [${key}] for this kind of map.');
+
+    dynamic value = _cache[key];
+
+    if (value == null) {
+      value = !_innerMap.containsKey(key) && _superMap != null
+          ? _superMap[key]
+          : _innerMap[key];
+      if (value != null) {
+        if (value is Map<String, dynamic> && !(value is _CfgMap)) {
+          value = new _CfgMap(value as Map<String, dynamic>);
+        }
+        _cache[key] = value;
+      }
+    }
+    return value;
+  }
+}
+
+// **************************************************************************
+
+Map<String, dynamic> _originalConfigMap;
 Map<String, dynamic> _passMap;
+_CfgMap _cfgMap;
 
 Logger _log;
 
@@ -36,10 +92,12 @@ Future loadConfig() async {
   Resource cfgResource = new Resource(
       "package:scrum_tools/src/utils/command_line/config-utils.yaml");
 
-  Resource passResource = new Resource("package:scrum_tools/assets/pass.yaml");
+  Resource passResource = new Resource(
+      "package:scrum_tools/assets/pass.yaml");
 
   String cfgString = await cfgResource.readAsString(encoding: UTF8);
-  _cfgMap = loadYaml(cfgString);
+  _originalConfigMap = loadYaml(cfgString);
+  _cfgMap = new _CfgMap(_originalConfigMap);
 
   String passString = await passResource.readAsString(encoding: UTF8);
   _passMap = loadYaml(passString);
@@ -50,7 +108,8 @@ Future loadConfig() async {
   Logger.root.level = level;
   Logger.root.onRecord.listen((rec) {
     // ignore: conflicting_dart_import
-    print('${rec.level.name} :: ${rec.loggerName} : ${rec.time}: ${rec.message}');
+    print('${rec.level.name} :: ${rec.loggerName} : ${rec.time}: ${rec
+        .message}');
   });
   _log = new Logger("utils-cfg");
   _log.info('Root log level [${Logger.root.level}]');

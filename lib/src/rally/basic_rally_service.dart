@@ -282,6 +282,25 @@ class BasicRallyService {
   void close({bool force: false}) {
     _httpClient.close(force: force);
   }
+
+  Stream<RDWorkItem> getWorkItems(Iterable<String> wiCodes) {
+    if (!hasValue(wiCodes)) return null;
+    Set<String> toRetrieve = new Set.from(wiCodes);
+    int counter = toRetrieve.length;
+    StreamController<RDWorkItem> streamController = new StreamController<
+        RDWorkItem>();
+    toRetrieve.forEach((String wiCode) {
+      getWorkItem(wiCode).then((RDWorkItem workItem) {
+        streamController.add(workItem);
+      }).catchError((error) {
+        streamController.addError(error);
+      }).whenComplete(() {
+        counter--;
+        if (counter < 1) streamController.close();
+      });
+    });
+    return streamController.stream;
+  }
 }
 
 int compareWIByFormattedID(RDWorkItem wi1, RDWorkItem wi2) {
@@ -323,7 +342,7 @@ int compareWIByPrioritization(RDWorkItem wi1, RDWorkItem wi2) {
 
 RDPriority _inferPriority(RDWorkItem workItem) =>
 // TODO look into milestones
-    workItem is RDDefect ? workItem.priority : RDPriority.NORMAL;
+workItem is RDDefect ? workItem.priority : RDPriority.NORMAL;
 
 RDSeverity _inferSeverity(RDWorkItem workItem) =>
     workItem is RDDefect ? workItem.severity : RDSeverity.MINOR_PROBLEM;

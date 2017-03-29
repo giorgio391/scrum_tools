@@ -24,8 +24,8 @@
         <td class="next-status-title" title="Planned next status."
             style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
         </td>
-        <td class="hours-title" title="Accumul. hours"
-            style="background: darkgrey; padding: 4px;  text-align: center;">C. hours
+        <td class="hours-title" title="Reported spent hours."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Hours
         </td>
     </tr>
     {{#developmentEntries}}
@@ -43,13 +43,13 @@
         <td class="previous-plan-status" title="Previously planned status." style="text-align: center; padding: 4px;"
             valign="top">{{previousPlannedStatus}}
         </td>
-        <td class="reported-status" title="Reported status." style="text-align: center; padding: 4px;" valign="top">
+        <td class="reported-status" title="Reported status." style="font-weight: bold; text-align: center; padding: 4px; {{reportedStatusSymbolStyle}}" valign="top">
             {{reportedStatus}}
         </td>
-        <td class="next-status" title="Planned next status." style="text-align: center; padding: 4px;" valign="top">
+        <td class="next-status" title="Planned next status." style="font-weight: bold; text-align: center; padding: 4px; {{plannedStatusSymbolStyle}}" valign="top">
             {{plannedStatus}}
         </td>
-        <td class="hours" title="Accumulated hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
+        <td class="hours" title="Reported spent hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
         </td>
     </tr>
     {{/developmentEntries}}
@@ -72,8 +72,8 @@
         <td class="next-status-title" title="Planned next status."
             style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
         </td>
-        <td class="hours-title" title="Accumul. hours"
-            style="background: darkgrey; padding: 4px;  text-align: center;">C. hours
+        <td class="hours-title" title="Reported spent hours."
+            style="background: darkgrey; padding: 4px;  text-align: center;">Hours
         </td>
     </tr>
     {{#inquiriesEntries}}
@@ -83,13 +83,13 @@
         <td class="previous-plan-status" title="Previously planned status." style="text-align: center; padding: 4px;"
             valign="top">{{previousPlannedStatus}}
         </td>
-        <td class="reported-status" title="Reported status." style="text-align: center; padding: 4px;" valign="top">
+        <td class="reported-status" title="Reported status." style="font-weight: bold; text-align: center; padding: 4px; {{reportedStatusSymbolStyle}}" valign="top">
             {{reportedStatus}}
         </td>
-        <td class="next-status" title="Planned next status." style="text-align: center; padding: 4px;" valign="top">
+        <td class="next-status" title="Planned next status." style="text-align: center; padding: 4px; {{plannedStatusSymbolStyle}}" valign="top">
             {{plannedStatus}}
         </td>
-        <td class="hours" title="Accumulated hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
+        <td class="hours" title="Reported spent hours." style="text-align: right; padding: 4px;" valign="top">{{hours}}
         </td>
     </tr>
     {{/inquiriesEntries}}

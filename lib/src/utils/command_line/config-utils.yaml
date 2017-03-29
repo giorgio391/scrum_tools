@@ -21,17 +21,13 @@ spread_daily:
     mode: text
     number: 2
     out: true
-    
   conf-2:
+    ~extends: spread_daily/conf-1
     mode: html
-    number: 2
-    out: true
     template: daily_report.html
   conf-3:
-    mode: html
-    number: 2
+    ~extends: spread_daily/conf-2
     out: false
-    template: daily_report.html
     mail:
       host: posteio.emergya.com
       name: psnow-dev-team
@@ -41,17 +37,10 @@ spread_daily:
       recipients: jmurcia@emergya.com
       from_name: PSNow dev team
   conf-team:
+    ~extends: spread_daily/conf-3
     mode: html
-    number: 2
-    out: false
-    template: daily_report.html
     mail:
-      host: posteio.emergya.com
-      name: psnow-dev-team
-      user: team-green@servicios.emergya.com
-      pass: mailer-1
-      secured: true
+      ~extends: spread_daily/conf-3/mail
       recipients: gordon-all@emergya.com
-      from_name: PSNow dev team
 
 
