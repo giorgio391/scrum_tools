@@ -1,4 +1,4 @@
-import "package:test/test.dart";
+import 'package:test/test.dart';
 import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 

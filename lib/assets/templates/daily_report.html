@@ -8,24 +8,24 @@
     {{#development?}}
     <tr>
         <td class="title"
-            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            style="text-align: center; background: black; color: white; font-size: smaller; font-weight: bold;"
             colspan="6" width="100%">
             DEVELOPMENT
         </td>
     </tr>
     <tr style="color: white; font-weight: bold; font-size: smaller;">
-        <td class="description-title" colspan="2" style="background: darkgrey; padding: 4px;">Description</td>
+        <td class="description-title" colspan="2" style="background: dimgrey; padding: 4px;">Description</td>
         <td class="previous-plan-status-title" title="Previously planned status."
-            style="background: darkgrey; padding: 4px; text-align: center;">Prev. Plan
+            style="background: dimgrey; padding: 4px; text-align: center;">Prev. Plan
         </td>
         <td class="reported-status-title" title="Reported status."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Reported st.
+            style="background: dimgrey; padding: 4px;  text-align: center;">Reported st.
         </td>
         <td class="next-status-title" title="Planned next status."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
+            style="background: dimgrey; padding: 4px;  text-align: center;">Plan status
         </td>
         <td class="hours-title" title="Reported spent hours."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Hours
+            style="background: dimgrey; padding: 4px;  text-align: center;">Hours
         </td>
     </tr>
     {{#developmentEntries}}
@@ -34,7 +34,10 @@
         <td class="wi-code" title="Work item code." style="font-weight: bold; padding: 4px;" valign="top"><a
                 href="https://rally1.rallydev.com/#/55308115013d/search?keywords=DE5887" target="_blank"
                 style="text-decoration: none;">{{workItemCode}}</a></td>
-        <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">{{workItemTitle}}</td>
+        <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">
+            {{workItemTitle}}
+            {{#statement?}}<br/><span style="color: grey; font-style: italic;">{{statement}}</span>{{/statement?}}
+        </td>
         {{/workItem?}}
         {{^workItem?}}
         <td class="statement" title="Statement." colspan="2" valign="top" style="padding: 4px;">{{statement}}
@@ -57,29 +60,39 @@
     {{#inquiries?}}
     <tr>
         <td class="title"
-            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            style="text-align: center; background: black; color: white; font-size: smaller; font-weight: bold;"
             colspan="6">INQUIRIES
         </td>
     </tr>
     <tr style="color: white; font-weight: bold; font-size: smaller;">
-        <td class="description-title" colspan="2" style="background: darkgrey; padding: 4px;">Description</td>
+        <td class="description-title" colspan="2" style="background: dimgrey; padding: 4px;">Description</td>
         <td class="previous-plan-status-title" title="Previously planned status."
-            style="background: darkgrey; padding: 4px; text-align: center;">Prev. Plan
+            style="background: dimgrey; padding: 4px; text-align: center;">Prev. Plan
         </td>
         <td class="reported-status-title" title="Reported status."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Reported st.
+            style="background: dimgrey; padding: 4px;  text-align: center;">Reported st.
         </td>
         <td class="next-status-title" title="Planned next status."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Plan status
+            style="background: dimgrey; padding: 4px;  text-align: center;">Plan status
         </td>
         <td class="hours-title" title="Reported spent hours."
-            style="background: darkgrey; padding: 4px;  text-align: center;">Hours
+            style="background: dimgrey; padding: 4px;  text-align: center;">Hours
         </td>
     </tr>
     {{#inquiriesEntries}}
     <tr style="background: {{backColor}};">
-        <td class="statement" title="Statement." colspan="2" valign="top" style="padding: 4px;">{{statement}}
+        {{#workItem?}}
+        <td class="wi-code" title="Work item code." style="font-weight: bold; padding: 4px;" valign="top"><a
+                href="https://rally1.rallydev.com/#/55308115013d/search?keywords=DE5887" target="_blank"
+                style="text-decoration: none;">{{workItemCode}}</a></td>
+        <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">
+            {{workItemTitle}}
+            {{#statement?}}<br/><span style="color: grey; font-style: italic;">{{statement}}</span>{{/statement?}}
         </td>
+        {{/workItem?}}
+        {{^workItem?}}
+        <td class="statement" title="Statement." colspan="2" valign="top" style="padding: 4px;">{{statement}}</td>
+        {{/workItem?}}
         <td class="previous-plan-status" title="Previously planned status." style="text-align: center; padding: 4px;"
             valign="top">{{previousPlannedStatus}}
         </td>
@@ -96,7 +109,7 @@
     {{/inquiries?}}
     <tr>
         <td class="title"
-            style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+            style="text-align: center; background: black; color: white; font-size: smaller; font-weight: bold;"
             colspan="6">DEPLOYMENTS
         </td>
     </tr>
@@ -108,7 +121,7 @@
                         <table width="100%">
                             <tr>
                                 <td class="title"
-                                    style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+                                    style="padding: 4px; text-align: center; background: dimgrey; color: white; font-size: smaller; font-weight: bold;"
                                     width="100%" colspan="1">REPORTED
                                 </td>
                             </tr>
@@ -133,7 +146,7 @@
                         <table width="100%">
                             <tr>
                                 <td class="title"
-                                    style="text-align: center; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; font-size: smaller; font-weight: bold;"
+                                    style="padding: 4px; text-align: center; background: dimgrey; color: white; font-size: smaller; font-weight: bold;"
                                     width="100%" colspan="1">PLANNED
                                 </td>
                             </tr>
@@ -160,4 +173,10 @@
         </td>
     </tbody>
 </table>
+<br/>
+<div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: white; background: green;">Status as planned</div>
+<div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: black; background: LightGreen;">Status beyond the plan</div>
+<div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: white; background: red;">Status below the plan</div>
+<div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: black; background: gold;">Not previously planned</div>
+
 

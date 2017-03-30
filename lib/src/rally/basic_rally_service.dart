@@ -316,9 +316,9 @@ int compareWIByPrioritization(RDWorkItem wi1, RDWorkItem wi2) {
   if (wi1 == null && wi2 != null) return 1;
   if (wi1.ID == wi2.ID) return 0;
 
-  RDPriority priority1 = _inferPriority(wi1);
-  RDPriority priority2 = _inferPriority(wi2);
-  if (priority1 != priority2) return priority1.compareTo(priority2);
+  int comparison = _compareByPriorityRisk(wi1, wi2);
+
+  if (comparison != 0) return comparison;
 
   RDSeverity severity1 = _inferSeverity(wi1);
   RDSeverity severity2 = _inferSeverity(wi2);
@@ -337,12 +337,43 @@ int compareWIByPrioritization(RDWorkItem wi1, RDWorkItem wi2) {
   if (wi1 is RDDefect && !(wi2 is RDDefect)) return -1;
   if (!(wi1 is RDDefect) && wi2 is RDDefect) return 1;
 
+  if (wi1.planEstimate != null && wi2.planEstimate == null) return -1;
+  if (wi1.planEstimate == null && wi2.planEstimate != null) return 1;
+  if (wi1.planEstimate != null && wi2.planEstimate != null) {
+    return wi1.planEstimate > wi2.planEstimate ? -1 :
+    wi1.planEstimate < wi2.planEstimate ? 1 : 0;
+  }
+
   return 0;
 }
 
-RDPriority _inferPriority(RDWorkItem workItem) =>
-// TODO look into milestones
-workItem is RDDefect ? workItem.priority : RDPriority.NORMAL;
+int _compareByPriorityRisk(RDWorkItem wi1, RDWorkItem wi2) {
+  if (wi1 == null && wi2 == null) return 0;
+  if (wi1 != null && wi2 == null) return -1;
+  if (wi1 == null && wi2 != null) return 1;
+
+  RDPriority p1 = _inferWIPriority(wi1);
+  RDPriority p2 = _inferWIPriority(wi2);
+
+  if ((wi1.scheduleState == RDScheduleState.IN_PROGRESS ||
+      wi2.scheduleState == RDScheduleState.IN_PROGRESS) &&
+      wi1.scheduleState != wi2.scheduleState && p1 != RDPriority.MAX_PRIORITY &&
+      p2 != RDPriority.MAX_PRIORITY) {
+    return wi1.scheduleState == RDScheduleState.IN_PROGRESS ? -1 : 1;
+  }
+
+  return p1.compareTo(p2);
+}
+
+RDPriority _inferWIPriority(RDWorkItem workItem) {
+  if (workItem is RDDefect) {
+    return workItem.priority;
+  }
+  if (workItem is RDHierarchicalRequirement) {
+    return workItem.risk.equivalentPriority;
+  }
+  return null;
+}
 
 RDSeverity _inferSeverity(RDWorkItem workItem) =>
     workItem is RDDefect ? workItem.severity : RDSeverity.MINOR_PROBLEM;

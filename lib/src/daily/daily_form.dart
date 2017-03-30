@@ -66,10 +66,16 @@ class DailyForm {
 
   @Input()
   void set teamMemberCode(String code) {
+    String previous = model.teamMemberCode;
     if (code == null || teamMembers.contains(code)) {
       model.teamMemberCode = code;
     } else {
       model.teamMemberCode = null;
+    }
+    if (previous != model.teamMemberCode) {
+      model.scope = Scope.PAST;
+      model.process = Process.DEVELOPMENT;
+      model.status = Status.WIP;
     }
   }
 

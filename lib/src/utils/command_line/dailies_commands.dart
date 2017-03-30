@@ -210,13 +210,14 @@ class SpreadDaily extends UtilOptionCommand {
   void _printEntry(_StandardDailyEntry entry,
       Map<String, RDWorkItem> workItems) {
     String description = () {
-      if (entry._isWorkItem) {
-        return "${_formatString(entry._key, 7)} - "
-            "${workItems == null || workItems[entry._key] == null ?
-        '*** Work item not found [${entry._key}].***' : workItems[entry._key]
+      if (entry._hasWorkItem) {
+        return "${_formatString(entry._workItemCode, 7)} - "
+            "${workItems == null || workItems[entry._workItemCode] == null ?
+        '*** Work item not found [${entry._workItemCode}].***' : workItems[entry
+            ._workItemCode]
             .name}";
       } else {
-        return entry._key;
+        return entry._statement;
       }
     }();
 
@@ -253,7 +254,7 @@ String _plannedSymbol(_StandardDailyEntry entry) =>
 Iterable<String> _extractWorkItemCodes(Iterable<_StandardDailyEntry> entries) {
   Set<String> codes = new Set<String>();
   entries.forEach((_StandardDailyEntry entry) {
-    if (entry._isWorkItem) codes.add(entry._key);
+    if (entry._hasWorkItem) codes.add(entry._workItemCode);
   });
   return hasValue(codes) ? codes : null;
 }
@@ -399,9 +400,11 @@ class _DailyReportsDigester {
         _StandardDailyEntry myEntry = targetMap[key];
         if (myEntry == null) {
           myEntry = new _StandardDailyEntry()
-            .._key = key
+            .._entryKey = key
             .._rank = hasValue(entry.workItemCode) ? key : 'z$key'
-            .._isWorkItem = hasValue(entry.workItemCode);
+            .._notes = entry.notes
+            .._statement = entry.statement
+            .._workItemCode = entry.workItemCode;
           targetMap[key] = myEntry;
         }
         if (entry.scope == Scope.PAST) {
@@ -455,14 +458,19 @@ class _DailyReportsDigester {
 
 class _StandardDailyEntry {
 
-  bool _isWorkItem;
+  String _entryKey;
   String _rank;
-  String _key;
   Status _plannedStatus;
   Status _previousPlannedStatus;
   DateTime _previousPlannedStatusDate;
   Status _reportedStatus;
   double _hours;
+  String _workItemCode;
+  String _statement;
+  String _notes;
+
+  bool get _hasWorkItem => hasValue(_workItemCode);
+  bool get _hasStatement => hasValue(_statement);
 
 }
 
@@ -556,13 +564,13 @@ class _ContextMapBuilder {
   Map<String, dynamic> _entryToMap(_StandardDailyEntry entry,
       Map<String, RDWorkItem> workItems) {
     Map<String, dynamic> map = {};
-    if (entry._isWorkItem) {
+    if (entry._hasWorkItem) {
       map['workItem?'] = true;
-      map['workItemCode'] = entry._key;
-      map['workItemTitle'] = workItems[entry._key].name;
-    } else {
-      map['statement'] = entry._key;
+      map['workItemCode'] = entry._workItemCode;
+      map['workItemTitle'] = workItems[entry._workItemCode].name;
     }
+    map['statement?'] = entry._hasStatement;
+    map['statement'] = entry._statement;
     map['previousPlannedStatus'] = entry._previousPlannedStatus == null ? r'-' :
     entry._previousPlannedStatus.toString();
     map['reportedStatus'] = entry._reportedStatus == null ? r'-' :

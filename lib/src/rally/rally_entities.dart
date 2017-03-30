@@ -6,35 +6,34 @@ int _idFromUrl(String url) {
 
 class RDScheduleState implements Comparable<RDScheduleState> {
 
-  static final RDScheduleState UNDEFINED = new RDScheduleState._internal(
-      'Undefined', 'U', 0);
-  static final RDScheduleState DEFINED = new RDScheduleState._internal(
-      'Defined', 'D', 1);
-  static final RDScheduleState IN_PROGRESS = new RDScheduleState._internal(
-      'In-Progress', 'P', 2);
-  static final RDScheduleState COMPLETED = new RDScheduleState._internal(
-      'Completed', 'P', 3);
-  static final RDScheduleState ACCEPTED = new RDScheduleState._internal(
-      'Accepted', 'A', 4);
-  static final RDScheduleState ACCEPTED_BY_OWNER = new RDScheduleState
+  static const RDScheduleState UNDEFINED = const RDScheduleState._internal(
+      r'Undefined', r'U', 0);
+  static const RDScheduleState DEFINED = const RDScheduleState._internal(
+      r'Defined', r'D', 1);
+  static const RDScheduleState IN_PROGRESS = const RDScheduleState._internal(
+      r'In-Progress', r'P', 2);
+  static const RDScheduleState COMPLETED = const RDScheduleState._internal(
+      r'Completed', r'P', 3);
+  static const RDScheduleState ACCEPTED = const RDScheduleState._internal(
+      r'Accepted', r'A', 4);
+  static const RDScheduleState ACCEPTED_BY_OWNER = const RDScheduleState
       ._internal(
-      'Accepted by Product Owner', 'O', 5);
-
-  static final List<RDScheduleState> VALUES = new List.unmodifiable(
-      [UNDEFINED, DEFINED, IN_PROGRESS, COMPLETED, ACCEPTED, ACCEPTED_BY_OWNER]
-  );
+      r'Accepted by Product Owner', r'O', 5);
+  static const VALUES = const [
+    UNDEFINED, DEFINED, IN_PROGRESS, COMPLETED, ACCEPTED, ACCEPTED_BY_OWNER
+  ];
 
   static RDScheduleState parse(String value) {
     for (RDScheduleState v in VALUES) {
-      if (v.name == value) {
+      if (v._name == value) {
         return v;
       }
     }
     return null;
   }
 
-  String _name, _abbr;
-  int _order;
+  final String _name, _abbr;
+  final int _order;
 
   String get name => _name;
 
@@ -42,8 +41,7 @@ class RDScheduleState implements Comparable<RDScheduleState> {
 
   int get order => _order;
 
-
-  RDScheduleState._internal (this._name, this._abbr, this._order);
+  const RDScheduleState._internal (this._name, this._abbr, this._order);
 
   operator >(RDScheduleState s) => _order > s._order;
 
@@ -63,38 +61,74 @@ class RDScheduleState implements Comparable<RDScheduleState> {
   }
 }
 
-class RDSeverity implements Comparable<RDSeverity> {
+class RDRisk implements Comparable<RDRisk> {
 
-  static final RDSeverity CRASH = new RDSeverity._internal(
-      'Crash/Data Loss', 5);
-  static final RDSeverity MAJOR_PROBLEM = new RDSeverity._internal(
-      'Major Problem', 4);
-  static final RDSeverity MINOR_PROBLEM = new RDSeverity._internal(
-      'Minor Problem', 3);
-  static final RDSeverity COSMETIC = new RDSeverity._internal('Cosmetic', 2);
-  static final RDSeverity NONE = new RDSeverity._internal('None', 1);
+  static const RDRisk SHOWSTOPPER = const RDRisk._internal(
+      r'Showstopper', 0, RDPriority.RESOLVE_IMMEDIATELY);
+  static const RDRisk HIGH = const RDRisk._internal(
+      r'High', 1, RDPriority.HIGH_ATTENTION);
+  static const RDRisk MEDIUM = const RDRisk._internal(
+      r'Medium', 2, RDPriority.NORMAL);
+  static const RDRisk LOW = const RDRisk._internal(r'Low', 3, RDPriority.LOW);
+  static const RDRisk NONE = const RDRisk._internal(
+      r'-- No Entry --', 4, RDPriority.NONE);
 
-  static final List<RDSeverity> VALUES = new List.unmodifiable(
-      [CRASH, MAJOR_PROBLEM, MINOR_PROBLEM, COSMETIC, NONE]
-  );
+  static const VALUES = const [NONE, LOW, MEDIUM, HIGH, SHOWSTOPPER];
 
-  static RDSeverity parse(String value) {
-    for (RDSeverity v in VALUES) {
-      if (v.name == value) {
-        return v;
-      }
-    }
-    return null;
-  }
+  final String _name;
+  final int _order;
+  final RDPriority _equivalentPriority;
 
-  String _name;
-  int _order;
+  const RDRisk._internal (this._name, this._order, this._equivalentPriority);
 
   String get name => _name;
 
   int get order => _order;
 
-  RDSeverity._internal (this._name, this._order);
+  RDPriority get equivalentPriority => _equivalentPriority;
+
+  int compareTo(RDRisk other) {
+    return order - other.order;
+  }
+
+  @override
+  String toString() {
+    return _name;
+  }
+
+  static RDRisk parse(String value) {
+    if (value == null) return NONE;
+    for (RDRisk v in VALUES) {
+      if (v._name == value) {
+        return v;
+      }
+    }
+    return null;
+  }
+}
+
+class RDSeverity implements Comparable<RDSeverity> {
+
+  static const RDSeverity CRASH = const RDSeverity._internal(
+      r'Crash/Data Loss', 0);
+  static const RDSeverity MAJOR_PROBLEM = const RDSeverity._internal(
+      r'Major Problem', 1);
+  static const RDSeverity MINOR_PROBLEM = const RDSeverity._internal(
+      r'Minor Problem', 2);
+  static const RDSeverity COSMETIC = const RDSeverity._internal(r'Cosmetic', 3);
+  static const RDSeverity NONE = const RDSeverity._internal(r'None', 4);
+
+  static const VALUES = const
+  [NONE, COSMETIC, MINOR_PROBLEM, MAJOR_PROBLEM, CRASH];
+
+  final String _name;
+  final int _order;
+
+  String get name => _name;
+
+  int get order => _order;
+
+  const RDSeverity._internal (this._name, this._order);
 
   operator >(RDSeverity s) => _order > s._order;
 
@@ -110,41 +144,42 @@ class RDSeverity implements Comparable<RDSeverity> {
 
   @override
   String toString() {
-    return name;
+    return _name;
   }
-}
 
-class RDPriority implements Comparable<RDPriority> {
-
-  static final RDPriority RESOLVE_IMMEDIATELY = new RDPriority._internal(
-      'Resolve Immediately', 4);
-  static final RDPriority HIGH_ATTENTION = new RDPriority._internal(
-      'High Attention', 3);
-  static final RDPriority NORMAL = new RDPriority._internal('Normal', 2);
-  static final RDPriority LOW = new RDPriority._internal('Low', 1);
-  static final RDPriority NONE = new RDPriority._internal('None', 0);
-
-  static final List<RDPriority> VALUES = new List.unmodifiable(
-      [RESOLVE_IMMEDIATELY, HIGH_ATTENTION, NORMAL, LOW, NONE]
-  );
-
-  static RDPriority parse(String value) {
-    for (RDPriority v in VALUES) {
-      if (v.name == value) {
+  static RDSeverity parse(String value) {
+    for (RDSeverity v in VALUES) {
+      if (v._name == value) {
         return v;
       }
     }
     return null;
   }
+}
 
-  String _name;
-  int _order;
+class RDPriority implements Comparable<RDPriority> {
+
+  static const RDPriority RESOLVE_IMMEDIATELY = const RDPriority._internal(
+      r'Resolve Immediately', 0);
+  static const RDPriority HIGH_ATTENTION = const RDPriority._internal(
+      r'High Attention', 1);
+  static const RDPriority NORMAL = const RDPriority._internal(r'Normal', 2);
+  static const RDPriority LOW = const RDPriority._internal(r'Low', 3);
+  static const RDPriority NONE = const RDPriority._internal(r'None', 4);
+
+  static const RDPriority MAX_PRIORITY = RESOLVE_IMMEDIATELY;
+
+  static const VALUES = const [
+    NONE, LOW, NORMAL, HIGH_ATTENTION, RESOLVE_IMMEDIATELY];
+
+  final String _name;
+  final int _order;
 
   String get name => _name;
 
   int get order => _order;
 
-  RDPriority._internal(this._name, this._order);
+  const RDPriority._internal(this._name, this._order);
 
   operator >(RDPriority p) => _order > p._order;
 
@@ -160,38 +195,36 @@ class RDPriority implements Comparable<RDPriority> {
 
   @override
   String toString() {
-    return name;
+    return _name;
   }
-}
 
-class RDState implements Comparable<RDState> {
-
-  static final RDState SUBMITTED = new RDState._internal('Submitted', 0);
-  static final RDState OPEN = new RDState._internal('Open', 1);
-  static final RDState FIXED = new RDState._internal('Fixed', 2);
-  static final RDState CLOSED = new RDState._internal('Closed', 3);
-
-  static final List<RDState> VALUES = new List.unmodifiable(
-      [SUBMITTED, OPEN, FIXED, CLOSED]
-  );
-
-  static RDState parse(String value) {
-    for (RDState v in VALUES) {
-      if (v.name == value) {
+  static RDPriority parse(String value) {
+    for (RDPriority v in VALUES) {
+      if (v._name == value) {
         return v;
       }
     }
     return null;
   }
+}
 
-  String _name;
-  int _order;
+class RDState implements Comparable<RDState> {
+
+  static const RDState SUBMITTED = const RDState._internal(r'Submitted', 0);
+  static const RDState OPEN = const RDState._internal(r'Open', 1);
+  static const RDState FIXED = const RDState._internal(r'Fixed', 2);
+  static const RDState CLOSED = const RDState._internal(r'Closed', 3);
+
+  static const VALUES = const [CLOSED, FIXED, OPEN, SUBMITTED];
+
+  final String _name;
+  final int _order;
 
   String get name => _name;
 
   int get order => _order;
 
-  RDState._internal(this._name, this._order);
+  const RDState._internal(this._name, this._order);
 
   operator >(RDState s) => _order > s._order;
 
@@ -207,7 +240,16 @@ class RDState implements Comparable<RDState> {
 
   @override
   String toString() {
-    return name;
+    return _name;
+  }
+
+  static RDState parse(String value) {
+    for (RDState v in VALUES) {
+      if (v._name == value) {
+        return v;
+      }
+    }
+    return null;
   }
 }
 
@@ -458,13 +500,17 @@ class RDDefect extends RDWorkItem {
 
 class RDHierarchicalRequirement extends RDWorkItem {
 
+  RDRisk _risk;
   bool _hasParent;
+
+  RDRisk get risk => _risk;
 
   bool get hasParent => _hasParent;
 
   RDHierarchicalRequirement.fromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
     _hasParent = map['HasParent'];
+    _risk = RDRisk.parse(map['c_Risk']);
   }
 
 }
