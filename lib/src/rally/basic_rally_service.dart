@@ -310,72 +310,97 @@ int compareWIByFormattedID(RDWorkItem wi1, RDWorkItem wi2) {
   return wi1.formattedID.compareTo(wi2.formattedID);
 }
 
-int compareWIByPrioritization(RDWorkItem wi1, RDWorkItem wi2) {
-  if (wi1 == null && wi2 == null) return 0;
-  if (wi1 != null && wi2 == null) return -1;
-  if (wi1 == null && wi2 != null) return 1;
-  if (wi1.ID == wi2.ID) return 0;
+class PrioritizationComparator {
 
-  int comparison = _compareByPriorityRisk(wi1, wi2);
+  RDIteration _currentIteration;
 
-  if (comparison != 0) return comparison;
+  PrioritizationComparator([this._currentIteration]);
 
-  RDSeverity severity1 = _inferSeverity(wi1);
-  RDSeverity severity2 = _inferSeverity(wi2);
-  if (severity1 != severity2) return severity1.compareTo(severity2);
+  int compare(RDWorkItem wi1, RDWorkItem wi2) {
 
-  RDIteration iteration1 = wi1.iteration;
-  RDIteration iteration2 = wi2.iteration;
-  if (iteration1 != iteration2) return iteration1.compareTo(iteration2);
+    if (wi1 == null && wi2 == null) return 0;
+    if (wi1 != null && wi2 == null) return -1;
+    if (wi1 == null && wi2 != null) return 1;
+    if (wi1.ID == wi2.ID) return 0;
 
-  String rank1 = wi1.rank;
-  String rank2 = wi2.rank;
-  if (rank1 != rank2) return rank1.compareTo(rank2);
+    RDIteration iteration1 = wi1.iteration;
+    RDIteration iteration2 = wi2.iteration;
 
-  if (wi1.expedite != wi2.expedite) return wi1.expedite ? -1 : 1;
+    if (iteration1 != null && iteration2 == null) return -1;
+    if (iteration1 == null && iteration2 != null) return 1;
 
-  if (wi1 is RDDefect && !(wi2 is RDDefect)) return -1;
-  if (!(wi1 is RDDefect) && wi2 is RDDefect) return 1;
+    if (_currentIteration != null && iteration1 != null && iteration2 != null) {
+      if (iteration1 <= _currentIteration && iteration2 > _currentIteration)
+        return -1;
+      if (iteration1 > _currentIteration && iteration2 <= _currentIteration)
+        return 1;
+    }
 
-  if (wi1.planEstimate != null && wi2.planEstimate == null) return -1;
-  if (wi1.planEstimate == null && wi2.planEstimate != null) return 1;
-  if (wi1.planEstimate != null && wi2.planEstimate != null) {
-    return wi1.planEstimate > wi2.planEstimate ? -1 :
-    wi1.planEstimate < wi2.planEstimate ? 1 : 0;
+    int priorityComparison = _compareByPriorityRisk(wi1, wi2);
+
+    if (priorityComparison != 0) return priorityComparison;
+
+    RDSeverity severity1 = _inferSeverity(wi1);
+    RDSeverity severity2 = _inferSeverity(wi2);
+    if (severity1 != severity2) return severity1.compareTo(severity2);
+
+    if (iteration1 != null && iteration2 == null) return -1;
+    if (iteration1 == null && iteration2 != null) return 1;
+    if (iteration1 != iteration2) return iteration1.compareTo(iteration2);
+
+    String rank1 = wi1.rank;
+    String rank2 = wi2.rank;
+    if (rank1 != rank2) return rank1.compareTo(rank2);
+
+    if (wi1.expedite != wi2.expedite) return wi1.expedite ? -1 : 1;
+
+    if (wi1 is RDDefect && !(wi2 is RDDefect)) return -1;
+    if (!(wi1 is RDDefect) && wi2 is RDDefect) return 1;
+
+    if (wi1.planEstimate != null && wi2.planEstimate == null) return -1;
+    if (wi1.planEstimate == null && wi2.planEstimate != null) return 1;
+    if (wi1.planEstimate != null && wi2.planEstimate != null) {
+      return wi1.planEstimate > wi2.planEstimate ? -1 :
+      wi1.planEstimate < wi2.planEstimate ? 1 : 0;
+    }
+
+    return 0;
   }
 
-  return 0;
+  int _compareByPriorityRisk(RDWorkItem wi1, RDWorkItem wi2) {
+    if (wi1 == null && wi2 == null) return 0;
+    if (wi1 != null && wi2 == null) return -1;
+    if (wi1 == null && wi2 != null) return 1;
+
+    RDPriority p1 = _inferWIPriority(wi1);
+    RDPriority p2 = _inferWIPriority(wi2);
+
+    if ((wi1.scheduleState == RDScheduleState.IN_PROGRESS ||
+        wi2.scheduleState == RDScheduleState.IN_PROGRESS) &&
+        wi1.scheduleState != wi2.scheduleState &&
+        p1 != RDPriority.MAX_PRIORITY &&
+        p2 != RDPriority.MAX_PRIORITY) {
+      return wi1.scheduleState == RDScheduleState.IN_PROGRESS ? -1 : 1;
+    }
+
+    return p1.compareTo(p2);
+  }
+
+  RDPriority _inferWIPriority(RDWorkItem workItem) {
+    if (workItem is RDDefect) {
+      return workItem.priority;
+    }
+    if (workItem is RDHierarchicalRequirement) {
+      return workItem.risk.equivalentPriority;
+    }
+    return null;
+  }
+
+  RDSeverity _inferSeverity(RDWorkItem workItem) =>
+      workItem is RDDefect ? workItem.severity : RDSeverity.MINOR_PROBLEM;
+
 }
 
-int _compareByPriorityRisk(RDWorkItem wi1, RDWorkItem wi2) {
-  if (wi1 == null && wi2 == null) return 0;
-  if (wi1 != null && wi2 == null) return -1;
-  if (wi1 == null && wi2 != null) return 1;
 
-  RDPriority p1 = _inferWIPriority(wi1);
-  RDPriority p2 = _inferWIPriority(wi2);
-
-  if ((wi1.scheduleState == RDScheduleState.IN_PROGRESS ||
-      wi2.scheduleState == RDScheduleState.IN_PROGRESS) &&
-      wi1.scheduleState != wi2.scheduleState && p1 != RDPriority.MAX_PRIORITY &&
-      p2 != RDPriority.MAX_PRIORITY) {
-    return wi1.scheduleState == RDScheduleState.IN_PROGRESS ? -1 : 1;
-  }
-
-  return p1.compareTo(p2);
-}
-
-RDPriority _inferWIPriority(RDWorkItem workItem) {
-  if (workItem is RDDefect) {
-    return workItem.priority;
-  }
-  if (workItem is RDHierarchicalRequirement) {
-    return workItem.risk.equivalentPriority;
-  }
-  return null;
-}
-
-RDSeverity _inferSeverity(RDWorkItem workItem) =>
-    workItem is RDDefect ? workItem.severity : RDSeverity.MINOR_PROBLEM;
 
 

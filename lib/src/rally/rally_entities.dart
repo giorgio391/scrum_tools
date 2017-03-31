@@ -4,6 +4,11 @@ int _idFromUrl(String url) {
   return int.parse(url.substring(url.lastIndexOf(r'/') + 1));
 }
 
+DateTime _parseDate(String value) {
+  if (value != null) return DateTime.parse(value);
+  return null;
+}
+
 class RDScheduleState implements Comparable<RDScheduleState> {
 
   static const RDScheduleState UNDEFINED = const RDScheduleState._internal(
@@ -305,9 +310,9 @@ class RDIteration extends RDEntity implements Comparable<RDIteration> {
   RDIteration.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
     _name = map['Name'];
     _state = map['State'];
-    _creationDate = DateTime.parse(map['CreationDate']);
-    _startDate = DateTime.parse(map['StartDate']);
-    _endDate = DateTime.parse(map['EndDate']);
+    _creationDate = _parseDate(map['CreationDate']);
+    _startDate = _parseDate(map['StartDate']);
+    _endDate = _parseDate(map['EndDate']);
     _taskEstimateTotal = map['TaskEstimateTotal'];
     _planEstimate = map['PlanEstimate'];
     _plannedVelocity = map['PlannedVelocity'];
@@ -317,14 +322,14 @@ class RDIteration extends RDEntity implements Comparable<RDIteration> {
     if (startDate != null && other.endDate != null) {
       return (startDate.isAfter(other.endDate) || startDate == other.endDate);
     }
-    return name.compareTo(other.name) < 0;
+    return name.compareTo(other.name) > 0;
   }
 
   operator <(RDIteration other) {
     if (endDate != null && other.startDate != null) {
       return endDate.isBefore(other.startDate) || endDate == other.startDate;
     }
-    return name.compareTo(other.name) > 0;
+    return name.compareTo(other.name) < 0;
   }
 
   operator >=(RDIteration other) => objectID == other.objectID || this > other;
@@ -396,6 +401,7 @@ abstract class RDWorkItem extends RDEntity {
   RDIteration _iteration;
   RDScheduleState _scheduleState;
   String _rank;
+  bool _isDeployed;
 
   String get name => _name;
 
@@ -429,6 +435,8 @@ abstract class RDWorkItem extends RDEntity {
 
   String get rank => _rank;
 
+  bool get isDeployed => _isDeployed;
+
   RDWorkItem._internalFromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
     _formattedID = map['FormattedID'];
@@ -450,7 +458,9 @@ abstract class RDWorkItem extends RDEntity {
         return v1.compareTo(v2);
       });
       myTags.forEach((value) {
-        _tags.add(value['Name']);
+        String s = value['Name'];
+        if (s == 'UAT' || s == 'PRE' || s == 'PRO') _isDeployed = true;
+        _tags.add(s);
       });
     }
     if (map['Owner'] != null) {

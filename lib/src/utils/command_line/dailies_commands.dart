@@ -234,15 +234,15 @@ class SpreadDaily extends UtilOptionCommand {
 
 String _reportedSymbol(_StandardDailyEntry entry) =>
     entry._previousPlannedStatus == null && entry._reportedStatus != null
-        ? r'*'
-        :
+        ? r'*' :
     entry._previousPlannedStatus != null && entry._reportedStatus != null &&
-        entry._reportedStatus > entry._previousPlannedStatus ? r'+' : entry
-        ._previousPlannedStatus != null && entry._reportedStatus != null &&
+        entry._reportedStatus > entry._previousPlannedStatus ? r'+' :
+    entry._previousPlannedStatus != null && entry._reportedStatus != null &&
         entry._reportedStatus < entry._previousPlannedStatus ? r'-' :
+    entry._previousPlannedStatus != null && entry._reportedStatus == null ?
+    r'-' :
     entry._previousPlannedStatus == null && entry._reportedStatus == null
-        ? r':'
-        : r'>';
+        ? r':' : r'>';
 
 String _plannedSymbol(_StandardDailyEntry entry) =>
     entry._plannedStatus == null ? r'::' : entry._reportedStatus !=
@@ -400,7 +400,7 @@ class _DailyReportsDigester {
         _StandardDailyEntry myEntry = targetMap[key];
         if (myEntry == null) {
           myEntry = new _StandardDailyEntry()
-            .._entryKey = key
+          //.._entryKey = key
             .._rank = hasValue(entry.workItemCode) ? key : 'z$key'
             .._notes = entry.notes
             .._statement = entry.statement
@@ -458,7 +458,7 @@ class _DailyReportsDigester {
 
 class _StandardDailyEntry {
 
-  String _entryKey;
+  //String _entryKey;
   String _rank;
   Status _plannedStatus;
   Status _previousPlannedStatus;
@@ -470,6 +470,7 @@ class _StandardDailyEntry {
   String _notes;
 
   bool get _hasWorkItem => hasValue(_workItemCode);
+
   bool get _hasStatement => hasValue(_statement);
 
 }
