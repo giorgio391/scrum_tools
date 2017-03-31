@@ -1,5 +1,12 @@
+# Levels: ALL, FINEST, FINER, FINE, CONFIG, INFO, WARNING, SEVERE, SHOUT, OFF
+log:
+  level: INFO
+  custom:
+    - rest_server: FINEST
+    #- rd-proxy: FINER
+
 mailer:
   host: posteio.emergya.com
   user: team-green@servicios.emergya.com
-  pass: j43vDvgT6g
+  pass: mailer-1
   secured: true

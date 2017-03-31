@@ -13,7 +13,6 @@ import 'package:scrum_tools/src/utils/command_line/config.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
 import 'package:scrum_tools/src/utils/mailer.dart';
 
-
 class ListDailies extends UtilOptionCommand {
 
   String get abbr => "d";
@@ -60,58 +59,44 @@ class SpreadDaily extends UtilOptionCommand {
       if (!hasValue(reports)) {
         print(r'No daily report found!.');
       } else {
-        _DailyReportsDigester cReport = new _DailyReportsDigester(
-            reports);
-        if ('html' == conf['mode']) {
-          _ContextMapBuilder builder = new _ContextMapBuilder();
-          builder._createMap(cReport).then((Map<String, dynamic> context) {
-            if (context != null) {
-              String resourceKey = 'package:${cfgValue(
-                  'templates')}/${conf['template']}';
-              Resource cfgResource = new Resource(resourceKey);
-              cfgResource.readAsString(encoding: UTF8).then((String template) {
-                String html = render(template, context);
-                if (conf['out']) print(html);
-                if (conf['mail'] != null) {
-                  Mailer mailer = new Mailer.fromMap(conf['mail']);
-                  mailer.sendHtml('[PSNow] Daily report ${_formatDate(
-                      cReport._startDate)} >> ${_formatDate(cReport._endDate)}',
-                      html).then((_) {
-                    print("Email sent. OK!");
-                  }).catchError((error) {
-                    _log.severe(error);
-                  });
-                }
-              }).catchError((error) {
-                _log.severe(error);
-              });
-            } else {
-              stderr.writeln('No context for HTML.');
-            }
-          }).catchError((error) {
-            _log.severe(error);
-          });
-        } else {
-          _printReport(cReport);
+        switch (conf['mode']) {
+          case 'html':
+            _ConsolidatedDailyReportsDigester digester =
+            new _ConsolidatedDailyReportsDigester(reports);
+            _HtmlWorker htmlW = new _HtmlWorker(digester, conf['template']);
+            htmlW._process().then((String html) {
+              _ResultWorker resultW = new _ResultWorker(conf,
+                  '[PSNow] Daily report ${_formatDate(
+                      digester._startDate)} >> ${_formatDate(
+                      digester._endDate)}', html);
+              resultW._process();
+            }).catchError((error) {});
+            break;
+          case 'html-member':
+            break;
+          default:
+            _ConsolidatedDailyReportsDigester digester =
+            new _ConsolidatedDailyReportsDigester(reports);
+            _printReport(digester);
         }
       }
     });
   }
 
-  void _printReport(_DailyReportsDigester report) {
-    if (report != null) {
-      print(r'=====================================');
-      print('Daily report ${_formatDate(report._startDate)} >> ${_formatDate(
-          report._endDate)}');
-      print(r'=====================================');
+  void _printReport(_ConsolidatedDailyReportsDigester digester) {
+    if (digester != null) {
+      print(r'====================================================');
+      print('Daily report ${_formatDate(digester._startDate)} >> ${_formatDate(
+          digester._endDate)} - Hours: ${_formatDouble(digester._hours)}');
+      print(r'====================================================');
       List<_entriesPrinter> entriesPrinter = [];
-      Iterable<_StandardDailyEntry> devEntries = report._devEntriesByRank;
+      Iterable<_StandardDailyEntry> devEntries = digester._devEntriesByRank;
       if (hasValue(devEntries)) {
         entriesPrinter.add(() {
           return _printEntries(r'DEVELOPMENT', devEntries);
         });
       }
-      Iterable<_StandardDailyEntry> inquiryEntries = report
+      Iterable<_StandardDailyEntry> inquiryEntries = digester
           ._inquiriesEntriesByRank;
       if (hasValue(inquiryEntries)) {
         entriesPrinter.add(() {
@@ -119,7 +104,7 @@ class SpreadDaily extends UtilOptionCommand {
         });
       }
       entriesPrinter.add(() {
-        return _printDeployments(report);
+        return _printDeployments(digester);
       });
       if (!hasValue(entriesPrinter)) {
         print(r"*** No entries. ***");
@@ -145,28 +130,28 @@ class SpreadDaily extends UtilOptionCommand {
     }
   }
 
-  _printDeployments(_DailyReportsDigester report) {
-    if (report != null) {
+  _printDeployments(_ConsolidatedDailyReportsDigester digester) {
+    if (digester != null) {
       _printTitle(r'DEPLOYMENTS');
-      if ((hasValue(report._deploymentPlan) ||
-          hasValue(report._deploymentReported))) {
-        if (hasValue(report._deploymentReported)) {
+      if ((hasValue(digester._deploymentPlan) ||
+          hasValue(digester._deploymentReported))) {
+        if (hasValue(digester._deploymentReported)) {
           stdout.write('[REPORTED: ');
           Environment.VALUES.forEach((Environment env) {
-            if (report._deploymentReported[env] != null) {
+            if (digester._deploymentReported[env] != null) {
               stdout.write(
-                  '- ${env.value} >> ${report._deploymentReported[env]
+                  '- ${env.value} >> ${digester._deploymentReported[env]
                       .value} ');
             }
           });
           stdout.write(']');
         }
-        if (hasValue(report._deploymentPlan)) {
+        if (hasValue(digester._deploymentPlan)) {
           stdout.write('[PLANNED: ');
           Environment.VALUES.forEach((Environment env) {
-            if (report._deploymentPlan[env] != null) {
+            if (digester._deploymentPlan[env] != null) {
               stdout.write(
-                  '- ${env.value} >> ${report._deploymentPlan[env].value} ');
+                  '- ${env.value} >> ${digester._deploymentPlan[env].value} ');
             }
           });
           stdout.write(']');
@@ -308,20 +293,71 @@ typedef bool _EntryFilter(DailyEntry entry);
 
 bool _defaultFilter(DailyEntry entry) => true;
 
-class _DailyReportsDigester {
+abstract class _DailyReportsDigester {
 
   DateTime _startDate;
   DateTime _endDate;
+  _EntryFilter _entryFilter;
+  Iterable<DailyReport> _reports;
+
+  double get hours;
+
+  _DailyReportsDigester(this._reports, [this._entryFilter = _defaultFilter]) {
+    _entryFilter ??= _defaultFilter;
+    _digestDailyReports(_reports);
+  }
+
+  void _digestDailyReports(Iterable<DailyReport> reports) {
+    if (hasValue(reports)) {
+      reports.forEach((DailyReport report) {
+        if (report.date == null) throw r"Daily report w/o a date.";
+        if (_startDate == null || _startDate.isAfter(report.date))
+          _startDate = report.date;
+        if (_endDate == null || _endDate.isBefore(report.date))
+          _endDate = report.date;
+      });
+      reports.forEach((DailyReport report) {
+        _digestDailyReport(report);
+      });
+      _doAfter();
+    }
+  }
+
+  void _doAfter();
+
+  void _digestDailyReport(DailyReport report) {
+    if (report != null) {
+      _digestDailyEntries(report.date, report.entries);
+    }
+  }
+
+  void _digestDailyEntries(DateTime date, Iterable<DailyEntry> entries) {
+    if (hasValue(entries)) {
+      Iterable<DailyEntry> filtered = entries.where((DailyEntry entry) =>
+          _entryFilter(entry));
+      filtered.forEach((DailyEntry entry) {
+        _digestDailyEntry(date, entry);
+      });
+    }
+  }
+
+  void _digestDailyEntry(DateTime date, DailyEntry entry);
+}
+
+
+class _ConsolidatedDailyReportsDigester extends _DailyReportsDigester {
+
   Map<String, _StandardDailyEntry> _devEntriesMap = {};
   Map<String, _StandardDailyEntry> _inquiriesEntriesMap = {};
   Map<Environment, Status> _deploymentPlan = {};
   Map<Environment, Status> _deploymentReported = {};
-  _EntryFilter _entryFilter;
 
-  _DailyReportsDigester(Iterable<DailyReport> reports,
-      [this._entryFilter = _defaultFilter]) {
-    _digestDailyReports(reports);
-  }
+  double _hours = 0.0;
+
+  double get hours => _hours;
+
+  _ConsolidatedDailyReportsDigester(Iterable<DailyReport> reports,
+      [_EntryFilter _entryFilter]) : super (reports, _entryFilter);
 
   Iterable<_StandardDailyEntry> get _devEntriesByRank =>
       _entriesByRank(_devEntriesMap);
@@ -342,48 +378,23 @@ class _DailyReportsDigester {
     return null;
   }
 
-  void _digestDailyReports(Iterable<DailyReport> reports) {
-    if (hasValue(reports)) {
-      reports.forEach((DailyReport report) {
-        if (report.date == null) throw r"Daily report w/o a date.";
-        if (_startDate == null || _startDate.isAfter(report.date))
-          _startDate = report.date;
-        if (_endDate == null || _endDate.isBefore(report.date))
-          _endDate = report.date;
-      });
-      reports.forEach((DailyReport report) {
-        _digestDailyReport(report);
-      });
-      Iterable<String> ite = new List.from(_devEntriesMap.keys);
-      ite.forEach((String s) {
-        _StandardDailyEntry entry = _devEntriesMap[s];
-        if (entry._reportedStatus == null && entry._plannedStatus == null &&
-            entry._previousPlannedStatus == null)
-          _devEntriesMap.remove(s);
-      });
-      ite = new List.from(_inquiriesEntriesMap.keys);
-      ite.forEach((String s) {
-        _StandardDailyEntry entry = _inquiriesEntriesMap[s];
-        if (entry._reportedStatus == null && entry._plannedStatus == null &&
-            entry._previousPlannedStatus == null)
-          _inquiriesEntriesMap.remove(s);
-      });
-    }
-  }
-
-  void _digestDailyReport(DailyReport report) {
-    if (report != null) {
-      _digestDailyEntries(report.date, report.entries);
-    }
-  }
-
-  void _digestDailyEntries(DateTime date, Iterable<DailyEntry> entries) {
-    if (hasValue(entries)) {
-      entries.where(((DailyEntry entry) => _entryFilter(entry))).forEach((
-          DailyEntry entry) {
-        _digestDailyEntry(date, entry);
-      });
-    }
+  @override
+  void _doAfter() {
+    // Clean unnecessary maps entries
+    Iterable<String> ite = new List.from(_devEntriesMap.keys);
+    ite.forEach((String s) {
+      _StandardDailyEntry entry = _devEntriesMap[s];
+      if (entry._reportedStatus == null && entry._plannedStatus == null &&
+          entry._previousPlannedStatus == null)
+        _devEntriesMap.remove(s);
+    });
+    ite = new List.from(_inquiriesEntriesMap.keys);
+    ite.forEach((String s) {
+      _StandardDailyEntry entry = _inquiriesEntriesMap[s];
+      if (entry._reportedStatus == null && entry._plannedStatus == null &&
+          entry._previousPlannedStatus == null)
+        _inquiriesEntriesMap.remove(s);
+    });
   }
 
   void _digestDailyEntry(DateTime date, DailyEntry entry) {
@@ -416,6 +427,7 @@ class _DailyReportsDigester {
               myEntry._hours =
               myEntry._hours == null ? entry.hours : myEntry._hours +
                   entry.hours;
+              _hours += entry.hours;
             }
           }
         } else {
@@ -479,18 +491,19 @@ class _ContextMapBuilder {
 
   static Logger _log = SpreadDaily._log;
 
-  Future<Map<String, dynamic>> _createMap(_DailyReportsDigester report) {
+  Future<Map<String, dynamic>> _createMap(
+      _ConsolidatedDailyReportsDigester digester) {
     Completer<Map<String, dynamic>> completer = new Completer<
         Map<String, dynamic>>();
-    if (report != null) {
+    if (digester != null) {
       Map<String, dynamic> map = {
-        'startDate': _formatDate(report._startDate),
-        'endDate': _formatDate(report._endDate)
+        'startDate': _formatDate(digester._startDate),
+        'endDate': _formatDate(digester._endDate)
       };
       List generatorModel = [];
 
 
-      Iterable<_StandardDailyEntry> devEntries = report._devEntriesByRank;
+      Iterable<_StandardDailyEntry> devEntries = digester._devEntriesByRank;
       if (hasValue(devEntries)) {
         map['development?'] = true;
         generatorModel.add(() {
@@ -501,7 +514,7 @@ class _ContextMapBuilder {
         });
       }
 
-      Iterable<_StandardDailyEntry> inquiryEntries = report
+      Iterable<_StandardDailyEntry> inquiryEntries = digester
           ._inquiriesEntriesByRank;
       if (hasValue(inquiryEntries)) {
         map['inquiries?'] = true;
@@ -514,7 +527,7 @@ class _ContextMapBuilder {
       }
 
       generatorModel.add(() {
-        map['deployments'] = _deployments(report);
+        map['deployments'] = _deployments(digester);
         map['reportedDeployments'] = map['deployments']['reported'];
         map['plannedDeployments'] = map['deployments']['planned'];
         map['reportedDeployments?'] = hasValue(map['reportedDeployments']);
@@ -593,28 +606,28 @@ class _ContextMapBuilder {
     return map;
   }
 
-  Map _deployments(_DailyReportsDigester report) {
+  Map _deployments(_ConsolidatedDailyReportsDigester digester) {
     Map map = {};
-    if (hasValue(report._deploymentReported)) {
+    if (hasValue(digester._deploymentReported)) {
       List list = [];
       Environment.VALUES.forEach((Environment env) {
-        if (report._deploymentReported[env] != null) {
+        if (digester._deploymentReported[env] != null) {
           list.add({
             'environment': env.toString(),
-            'status': report._deploymentReported[env].toString()
+            'status': digester._deploymentReported[env].toString()
           });
         }
       });
       map['reported?'] = true;
       map['reported'] = list;
     }
-    if (hasValue(report._deploymentPlan)) {
+    if (hasValue(digester._deploymentPlan)) {
       List list = [];
       Environment.VALUES.forEach((Environment env) {
-        if (report._deploymentPlan[env] != null) {
+        if (digester._deploymentPlan[env] != null) {
           list.add({
             'environment': env.toString(),
-            'status': report._deploymentPlan[env].toString()
+            'status': digester._deploymentPlan[env].toString()
           });
         }
       });
@@ -622,5 +635,71 @@ class _ContextMapBuilder {
       map['planned'] = list;
     }
     return map;
+  }
+}
+
+class _HtmlWorker {
+
+  static const String logName = "html-worker";
+
+  static Logger _log = new Logger('${SpreadDaily.logName}.$logName');
+
+  _DailyReportsDigester _cReport;
+  String _template;
+
+  _HtmlWorker(this._cReport, this._template);
+
+  Future<String> _process() {
+    _ContextMapBuilder builder = new _ContextMapBuilder();
+    Completer <String> completer = new Completer<String>();
+    builder._createMap(_cReport).then((Map<String, dynamic> context) {
+      if (context != null) {
+        String resourceKey = 'package:${cfgValue(
+            'templates')}/${_template}';
+        Resource cfgResource = new Resource(resourceKey);
+        cfgResource.readAsString(encoding: UTF8).then((String template) {
+          String html = render(template, context);
+          completer.complete(html);
+        }).catchError((error) {
+          _log.severe(error);
+          completer.completeError(error);
+        });
+      } else {
+        stderr.writeln('No context for HTML.');
+        completer.complete();
+      }
+    }).catchError((error) {
+      _log.severe(error);
+      completer.completeError(error);
+    });
+    return completer.future;
+  }
+}
+
+class _ResultWorker {
+
+  static const String logName = "result-worker";
+
+  static Logger _log = new Logger('${SpreadDaily.logName}.$logName');
+
+  Map<String, dynamic> _conf;
+  String _subject, _result;
+
+  _ResultWorker(this._conf, this._subject, this._result);
+
+  Future _process() {
+    Completer completer = new Completer();
+    if (_conf['out']) print(_result);
+    if (_conf['mail'] != null) {
+      Mailer mailer = new Mailer.fromMap(_conf['mail']);
+      mailer.sendHtml(_subject, _result).then((_) {
+        completer.complete();
+      }).catchError((error) {
+        completer.complete(error);
+      });
+    } else {
+      completer.complete();
+    }
+    return completer.future;
   }
 }

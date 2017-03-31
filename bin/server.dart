@@ -5,7 +5,8 @@ import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 import 'package:prompt/prompt.dart';
 import 'package:start/start.dart';
-import 'package:scrum_tools/src/server/config.dart';
+import 'package:scrum_tools/src/utils/configurer.dart';
+import 'package:scrum_tools/src/server/config.dart' as myCfg;
 import 'package:scrum_tools/src/server/rally_proxy.dart';
 import 'package:scrum_tools/src/server/rest/rest_server.dart';
 
@@ -26,9 +27,15 @@ typedef void ServerInitializer(Server appServer);
 ///
 /// The most simple usage would be passing "-w!" as arguments after a plain
 /// _dart build_.
-Future main(List<String> arguments) async {
+void main(List<String> arguments) {
 
-  Config cfg = new Config();
+  myCfg.loadConfig().then((ConfigMap cfgMap) {
+    _main(arguments, cfgMap);
+  });
+
+}
+Future _main(List<String> arguments, ConfigMap cfgMap) async {
+
   // ----
   Logger _log = new Logger('main');
   // ----
@@ -153,7 +160,7 @@ Future main(List<String> arguments) async {
 
   // Start REST API
   if (argResults[restArg] == true) {
-    RestServer restServer = cfg.restServer;
+    RestServer restServer = myCfg.restServer;
     initializers.add(restServer.init);
   }
 

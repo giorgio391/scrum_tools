@@ -42,5 +42,14 @@ spread_daily:
     mail:
       ~extends: spread_daily/conf-3/mail
       recipients: gordon-all@emergya.com
+  conf-member:
+    ~extends: spread_daily/conf-3
+    mode: html-member
+    members: ogonzalez
+    mail:
+      ~extends: spread_daily/conf-3/mail
+      recipients: jmurcia@emergya.com
+      #cc_recipients: jmurcia@emergya.com
+
 
 

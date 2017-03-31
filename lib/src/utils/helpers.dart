@@ -4,6 +4,10 @@ RegExp _durationRegExp = new RegExp(
     r'^[0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9][0-9][0-9][0-9][0-9][0-9]$');
 RegExp _splitDurationRegExp = new RegExp(r':|\.');
 
+RegExp _splitCLSExp = new RegExp(r'\s*,\s*'); // Comma Separated List
+List<String> asList(String string) =>
+    string == null ? null : string.split(_splitCLSExp);
+
 Duration parseDuration(dynamic value) {
   if (value == null) return null;
   if (value is String) {

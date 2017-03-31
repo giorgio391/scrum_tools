@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:mailer/mailer.dart';
 
+import 'package:logging/logging.dart';
+
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command_line/config.dart';
 
@@ -21,7 +23,6 @@ void main(List<String> args) {
         .catchError((e) => print('Error occurred: $e'));
     ;
   });
-
 }
 
 class Message extends Envelope {
@@ -33,7 +34,9 @@ class Message extends Envelope {
 
 class Mailer {
 
-  static final RegExp _splitRegExp = new RegExp(r'\s*,\s*');
+  static const String logName = "mailer";
+
+  static Logger _log = new Logger(logName);
 
   SmtpTransport _transport;
   String _from, _fromName;
@@ -52,13 +55,13 @@ class Mailer {
     if (map['from_name'] != null) _fromName = map['from_name'];
     if (map['recipients'] != null) {
       if (map['recipients'] is String)
-        _recipients = (map['recipients'] as String).split(_splitRegExp);
+        _recipients = asList(map['recipients']);
       else if (map['recipients'] is Iterable<String>)
         _recipients = new List.from(map['recipients']);
     }
     if (map['cc_recipients'] != null) {
       if (map['cc_recipients'] is String)
-        _ccRecipients = (map['cc_recipients'] as String).split(_splitRegExp);
+        _ccRecipients = asList(map['cc_recipients']);
       else if (map['cc_recipients'] is Iterable<String>)
         _ccRecipients = new List.from(map['cc_recipients']);
     }
@@ -74,7 +77,16 @@ class Mailer {
       message.ccRecipients.addAll(_ccRecipients);
     }
     if (hasValue(_from)) message.from = _from;
-    return _transport.send(message);
+    Completer completer = new Completer();
+    _transport.send(message).then((_) {
+      _log.info('<${message.subject}>. Sent OK!');
+      completer.complete();
+    }).catchError((error) {
+      _log.severe('<${message.subject}>. [${message.recipients.join(r', ')}]. ERROR!');
+      _log.severe(error);
+      completer.completeError(error);
+    });
+    return completer.future;
   }
 
   Future sendHtml(String subject, String html) {
