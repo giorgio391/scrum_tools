@@ -1,21 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show stdout, stderr;
+import 'dart:io' show stdout;
 
 import 'package:logging/logging.dart';
 import 'package:mustache4dart/mustache4dart.dart';
 import 'package:resource/resource.dart';
 
 import 'package:scrum_tools/src/daily/daily_entities.dart';
+import 'package:scrum_tools/src/daily/comparators.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command_line/config.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
+import 'package:scrum_tools/src/utils/command_line/formatter.dart';
 import 'package:scrum_tools/src/utils/mailer.dart';
+
+Printer _p = new Printer();
 
 class ListDailies extends UtilOptionCommand {
 
-  String get abbr => "d";
+  String get abbr => r"d";
 
   String get help =>
       r'Utility for listing daylies. An integer number must be provided.';
@@ -23,13 +27,321 @@ class ListDailies extends UtilOptionCommand {
   const ListDailies();
 
   void executeOption(String option) {
-    int value = int.parse(option);
-    _printLast(value);
+    bool formatted = !(hasValue(option) && option.startsWith(r'r'));
+    DateTime refDate = () {
+      if (!hasValue(option) || option.indexOf(r't') > -1)
+        return new DateTime.now();
+      if (option.length > 9) {
+        return DateTime.parse(
+            option.startsWith(r'r') || option.startsWith(r'd') ? option
+                .substring(1) : option);
+      }
+      return null;
+    }();
+    int number = () {
+      if (refDate == null)
+        return int.parse(
+            option.startsWith(r'r') || option.startsWith(r'd') ? option
+                .substring(1) : option);
+      return null;
+    }();
+
+    if (formatted) {
+      if (refDate != null) {
+        _printFormattedByDate(refDate);
+      } else if (number != null) {
+        // TODO
+      }
+    } else {
+      if (refDate != null) {
+        _printRawByDate(refDate);
+      } else if (number != null) {
+        _printRawByNumber(number);
+      }
+    }
   }
 
-  _printLast(int value) async {
+  _printRawByNumber(int value) async {
     List<String> list = await dailyDAO.getLastDailyReportsAsJson(number: value);
-    print(list);
+    _p.writeln(list);
+  }
+
+  _printRawByDate(DateTime value) async {
+    List<String> list = await dailyDAO.getLastDailyReportsAsJson(
+        dateReference: value, number: 2);
+    _p.writeln(list);
+  }
+
+  _printFormattedByDate(DateTime value) async {
+    List<DailyReport> list = await dailyDAO.getLastDailyReports(
+        dateReference: value, number: 2);
+    if (hasValue(list)) {
+      _digest(list).then((Map<String, dynamic> digested) {
+        if (hasValue(digested) && hasValue(digested['team-members-map'])) {
+          if (digested['previous-date'] == null) {
+            _p.title('Daily report ${formatDate(
+                list[0].date)}. Hours: ${digested['hours-a'] +
+                digested['hours-b']} [A:${digested['hours-a']}/B:${digested['hours-b']}]');
+          } else {
+            _p.title('Daily report ${formatDate(list[1].date)} >> ${formatDate(
+                list[0].date)}. Hours: ${digested['hours-a'] +
+                digested['hours-b']} [A:${digested['hours-a']}/B:${digested['hours-b']}]');
+          }
+          if (!hasValue(list[0].entries)) {
+            _p.section(r'Current plan -NONE-');
+          } else {
+            List<String> teamMembers = new List.from(
+                digested['team-members-map'].keys);
+            teamMembers.sort();
+            teamMembers.forEach((String teamMember) {
+              Map<String,
+                  dynamic> tmMap = digested['team-members-map'][teamMember];
+              _p.section('Current plan for ${teamMember}', r'··············');
+              List<DailyEntry> currentPlan =
+              tmMap[r'plan'];
+              if (hasValue(currentPlan)) {
+                List<PrinterColumn> cols = [
+                  _p.column(r'Process', 11),
+                  _p.column(r'Description', 100),
+                  _p.column(r'Planned S.', 10),
+                ];
+                cols.forEach((PrinterColumn col) => col.writeTitle());
+                _p.writeln();
+                cols.forEach((PrinterColumn col) => col.writeSeparator());
+                _p.writeln();
+                currentPlan.sort(composeComparator(processPart, keyPart));
+                currentPlan.forEach((DailyEntry entry) {
+                  cols[0].write(entry.process);
+                  if (hasValue(entry.workItemCode)) {
+                    cols[1].write(
+                        '${entry.workItemCode} ${digested['work-items'][entry
+                            .workItemCode].name}');
+                  } else {
+                    cols[1].write(_desc(entry));
+                  }
+                  cols[2].write(entry.status);
+                  _p.writeln();
+                  if (hasValue(entry.workItemCode) &&
+                      hasValue(entry.statement)) {
+                    cols[0].write(r'             ');
+                    cols[1].write('* ${entry.statement}');
+                    _p.writeln();
+                  }
+                  if ((hasValue(entry.workItemCode) ||
+                      hasValue(entry.statement)) && hasValue(entry.notes)) {
+                    cols[0].write(r'             ');
+                    cols[1].write('~ ${entry.notes}');
+                    _p.writeln();
+                  }
+                });
+                _p.writeln();
+              } else {
+                _p.writeln(r'- NONE -');
+              }
+
+              //##############################################################
+              //_p.writeln(r'*****************************************');
+              //##############################################################
+              _p.section(
+                  'Report from ${teamMember}. Hours: ${tmMap['hours-a'] +
+                      tmMap['hours-b']} [A:${tmMap['hours-a']}/B:${tmMap['hours-b']}]',
+                  r'··············');
+              List<DailyEntry> reported = tmMap[r'reported'];
+              if (hasValue(reported)) {
+                List<PrinterColumn> cols = [
+                  _p.column(r'Process', 11),
+                  _p.column(r'Description', 81),
+                  _p.column(r'Prev. Sta.', 10),
+                  _p.column(r'Report. Sta.', 12),
+                  _p.column(r' Hours', 6),
+                ];
+                cols.forEach((PrinterColumn col) => col.writeTitle());
+                _p.writeln();
+                cols.forEach((PrinterColumn col) => col.writeSeparator());
+                _p.writeln();
+                reported.sort(composeComparator(processPart, keyPart));
+                reported.forEach((DailyEntry entry) {
+                  cols[0].write(entry.process);
+                  if (hasValue(entry.workItemCode)) {
+                    cols[1].write(
+                        '${entry.workItemCode} ${digested['work-items'][entry
+                            .workItemCode].name}');
+                  } else {
+                    cols[1].write(_desc(entry));
+                  }
+                  String key = _key(entry);
+                  Status prevStatus = tmMap['previous-plan'] != null &&
+                      tmMap['previous-plan'][key] != null ?
+                  tmMap['previous-plan'][key] : null;
+                  cols[2].write(
+                      prevStatus == null ? '-' : prevStatus.toString());
+                  cols[3].write(
+                      '${_progressSymbol(prevStatus, entry.status)} ${entry
+                          .status.toString()}');
+                  cols[4].writeRight(entry.hours == null ? '-' : entry.hours);
+                  if (!hasValue(entry.workItemCode) &&
+                      !hasValue(entry.statement))
+                    _p.write(r':');
+                  _p.writeln();
+                  if (hasValue(entry.workItemCode) &&
+                      hasValue(entry.statement)) {
+                    cols[0].write(r' ');
+                    cols[1].write('* ${entry.statement}');
+                    _p.writeln();
+                  }
+                  if ((hasValue(entry.workItemCode) ||
+                      hasValue(entry.statement)) && hasValue(entry.notes)) {
+                    cols[0].write(r' ');
+                    cols[1].write('~ ${entry.notes}');
+                    _p.writeln();
+                  }
+                });
+                List<DailyEntry> unreported = tmMap[r'unreported'];
+                if (hasValue(unreported)) {
+                  List<PrinterColumn> cols = [
+                    _p.column(r'Process', 11),
+                    _p.column(r'Description', 81),
+                    _p.column(r'Prev. Sta.', 10),
+                    _p.column(r'Report. Sta.', 12),
+                    _p.column(r' Hours', 6),
+                  ];
+                  unreported.sort(composeComparator(processPart, keyPart));
+                  unreported.forEach((DailyEntry entry) {
+                    cols[0].write(entry.process);
+                    if (hasValue(entry.workItemCode)) {
+                      cols[1].write(
+                          '${entry.workItemCode} ${digested['work-items'][entry
+                              .workItemCode].name}');
+                    } else {
+                      cols[1].write(_desc(entry));
+                    }
+                    cols[2].write(entry.status);
+                    cols[3].write('${_progressSymbol(entry.status, null)} -');
+                    _p.writeln();
+                    if (hasValue(entry.workItemCode) &&
+                        hasValue(entry.statement)) {
+                      cols[0].write(r' ');
+                      cols[1].write('* ${entry.statement}');
+                      _p.writeln();
+                    }
+                    if ((hasValue(entry.workItemCode) ||
+                        hasValue(entry.statement)) && hasValue(entry.notes)) {
+                      cols[0].write(r' ');
+                      cols[1].write('~ ${entry.notes}');
+                      _p.writeln();
+                    }
+                  });
+                }
+                _p.writeln();
+              } else {
+                _p.writeln(r'- NONE -');
+              }
+              _p.writeln(formatString(r'################', 125, r'##########'));
+            });
+          }
+        } else {
+          // TODO no team member digested
+        }
+      });
+    }
+  }
+
+  String _desc(DailyEntry entry) {
+    if (hasValue(entry.workItemCode)) return entry.workItemCode;
+    if (hasValue(entry.statement)) return '* ${entry.statement}';
+    return '~ ${entry.notes}';
+  }
+
+  String _key(DailyEntry entry) {
+    return '${entry.process.toString()} # ${_desc(entry)}';
+  }
+
+  Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
+    Set<String> workItemCodes = new Set<String>();
+    double hoursA = 0.0;
+    double hoursB = 0.0;
+    Map<String, dynamic> byTeamMember = {};
+    list[0].entries.forEach((DailyEntry entry) {
+      if (hasValue(entry.workItemCode)) workItemCodes.add(entry.workItemCode);
+      Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
+          entry.teamMemberCode, () {
+        return {'hours-a': 0.0, 'hours-b': 0.0};
+      });
+      if (entry.scope == Scope.TODAY) {
+        List<DailyEntry> currentPlan = teamMemberRecord.putIfAbsent(
+            r'plan', () {
+          return [];
+        });
+        currentPlan.add(entry);
+      } else {
+        Set<String> reportedKeys = teamMemberRecord.putIfAbsent(
+            r'reported-keys', () => new Set<String>());
+        reportedKeys.add(_key(entry));
+        List<DailyEntry> reported = teamMemberRecord.putIfAbsent(
+            r'reported', () => []);
+        reported.add(entry);
+        if (entry.hours != null) {
+          if (hasValue(entry.workItemCode) || hasValue(entry.statement)) {
+            teamMemberRecord['hours-a'] += entry.hours;
+            hoursA += entry.hours;
+          } else {
+            teamMemberRecord['hours-b'] += entry.hours;
+            hoursB += entry.hours;
+          }
+        }
+      }
+    });
+    Map<String, dynamic> map = {
+      'date': list[0].date.toIso8601String(),
+      'hours-a': hoursA,
+      'hours-b': hoursB,
+      'team-members-map': byTeamMember
+    };
+
+    if (list.length > 1) {
+      map['previous-date'] = list[1].date.toIso8601String();
+      if (hasValue(list[1].entries)) {
+        list[1].entries.forEach((DailyEntry entry) {
+          if (entry.scope == Scope.TODAY) {
+            if (hasValue(entry.workItemCode)) workItemCodes.add(
+                entry.workItemCode);
+            Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
+                entry.teamMemberCode, () {
+              return {'hours-a': 0.0, 'hours-b': 0.0};
+            });
+            Map<String, Status> previousPlan = teamMemberRecord.putIfAbsent(
+                r'previous-plan', () {
+              return {};
+            });
+            String key = _key(entry);
+            Set<String> reportedKeys = teamMemberRecord[r'reported-keys'];
+            if (hasValue(reportedKeys) && reportedKeys.contains(key)) {
+              Status stat = previousPlan.putIfAbsent(key, () => entry.status);
+              if (stat < entry.status) previousPlan[key] = entry.status;
+            } else {
+              List<DailyEntry> unreported = teamMemberRecord.putIfAbsent(
+                  'unreported', () => []);
+              unreported.add(entry);
+            }
+          }
+        });
+      }
+    }
+
+    Completer<Map<String, dynamic>> completer = new Completer<
+        Map<String, dynamic>>();
+    if (hasValue(workItemCodes)) {
+      map['work-item-codes'] = workItemCodes;
+      _findWorkItems(workItemCodes).then((Map<String, RDWorkItem> wItems) {
+        map['work-items'] = wItems;
+        completer.complete(map);
+      }).whenComplete(() {
+        rallyService.close();
+      });
+    } else {
+      completer.complete(map);
+    }
+    return completer.future;
   }
 }
 
@@ -57,7 +369,7 @@ class SpreadDaily extends UtilOptionCommand {
     dailyDAO.getLastDailyReports(number: number).then((
         List<DailyReport> reports) {
       if (!hasValue(reports)) {
-        print(r'No daily report found!.');
+        _p.writeln(r'No daily report found!.');
       } else {
         switch (conf['mode']) {
           case 'html':
@@ -66,8 +378,8 @@ class SpreadDaily extends UtilOptionCommand {
             _HtmlWorker htmlW = new _HtmlWorker(digester, conf['template']);
             htmlW._process().then((String html) {
               _ResultWorker resultW = new _ResultWorker(conf,
-                  '[PSNow] Daily report ${_formatDate(
-                      digester._startDate)} >> ${_formatDate(
+                  '[PSNow] Daily report ${formatDate(
+                      digester._startDate)} >> ${formatDate(
                       digester._endDate)}', html);
               resultW._process();
             }).catchError((error) {});
@@ -85,10 +397,11 @@ class SpreadDaily extends UtilOptionCommand {
 
   void _printReport(_ConsolidatedDailyReportsDigester digester) {
     if (digester != null) {
-      print(r'====================================================');
-      print('Daily report ${_formatDate(digester._startDate)} >> ${_formatDate(
-          digester._endDate)} - Hours: ${_formatDouble(digester._hours)}');
-      print(r'====================================================');
+      _p.writeln(r'====================================================');
+      _p.writeln(
+          'Daily report ${formatDate(digester._startDate)} >> ${formatDate(
+              digester._endDate)} - Hours: ${formatDouble(digester._hours)}');
+      _p.writeln(r'====================================================');
       List<_entriesPrinter> entriesPrinter = [];
       Iterable<_StandardDailyEntry> devEntries = digester._devEntriesByRank;
       if (hasValue(devEntries)) {
@@ -106,8 +419,11 @@ class SpreadDaily extends UtilOptionCommand {
       entriesPrinter.add(() {
         return _printDeployments(digester);
       });
+      entriesPrinter.add(() {
+        return _printHours(digester);
+      });
       if (!hasValue(entriesPrinter)) {
-        print(r"*** No entries. ***");
+        _p.writeln(r"*** No entries. ***");
       } else {
         Future.forEach(entriesPrinter, (_entriesPrinter) {
           return _entriesPrinter();
@@ -116,50 +432,39 @@ class SpreadDaily extends UtilOptionCommand {
         });
       }
     } else {
-      print(r"*** 'null' consolidate report. ***");
-    }
-  }
-
-  void _printTitle(String title) {
-    if (hasValue(title)) {
-      String line = '+-${_formatString(
-          r'----------------------------------------------', title.length)}-+';
-      print(line);
-      print('| ${title} |');
-      print(line);
+      _p.writeln(r"*** 'null' consolidate report. ***");
     }
   }
 
   _printDeployments(_ConsolidatedDailyReportsDigester digester) {
     if (digester != null) {
-      _printTitle(r'DEPLOYMENTS');
+      _p.section(r'DEPLOYMENTS');
       if ((hasValue(digester._deploymentPlan) ||
           hasValue(digester._deploymentReported))) {
         if (hasValue(digester._deploymentReported)) {
-          stdout.write('[REPORTED: ');
+          _p.write('[REPORTED: ');
           Environment.VALUES.forEach((Environment env) {
             if (digester._deploymentReported[env] != null) {
-              stdout.write(
+              _p.write(
                   '- ${env.value} >> ${digester._deploymentReported[env]
                       .value} ');
             }
           });
-          stdout.write(']');
+          _p.write(']');
         }
         if (hasValue(digester._deploymentPlan)) {
-          stdout.write('[PLANNED: ');
+          _p.write('[PLANNED: ');
           Environment.VALUES.forEach((Environment env) {
             if (digester._deploymentPlan[env] != null) {
-              stdout.write(
+              _p.write(
                   '- ${env.value} >> ${digester._deploymentPlan[env].value} ');
             }
           });
-          stdout.write(']');
+          _p.write(']');
         }
-        stdout.writeln();
-        stdout.writeln();
+        _p.writeln().writeln();
       } else {
-        stdout.writeln('-- NONE --');
+        _p.writeln('-- NONE --').writeln();
       }
     }
   }
@@ -167,10 +472,10 @@ class SpreadDaily extends UtilOptionCommand {
   Future _printEntries(String title, Iterable<_StandardDailyEntry> entries) {
     Completer completer = new Completer();
     if (hasValue(entries)) {
-      _printTitle(title);
-      print(
+      _p.section(title);
+      _p.writeln(
           r'Description                                                                      Prev. Plan   Reported st. Plan status   Hours');
-      print(
+      _p.writeln(
           r'-------------------------------------------------------------------------------- ------------ ------------ ------------ --------');
 
       _findWorkItems(_extractWorkItemCodes(entries)).then((
@@ -178,15 +483,15 @@ class SpreadDaily extends UtilOptionCommand {
         entries.forEach((_StandardDailyEntry entry) {
           _printEntry(entry, workItems);
         });
-        stdout.writeln();
+        _p.writeln();
         completer.complete();
       }).catchError((error) {
         _log.severe(error);
-        stderr.writeln(error);
+        _p.errorln(error);
         completer.completeError(error);
       });
     } else {
-      print(r"--- No entry. --");
+      _p.writeln(r"--- No entry. --");
       completer.complete();
     }
     return completer.future;
@@ -196,38 +501,53 @@ class SpreadDaily extends UtilOptionCommand {
       Map<String, RDWorkItem> workItems) {
     String description = () {
       if (entry._hasWorkItem) {
-        return "${_formatString(entry._workItemCode, 7)} - "
+        return "${formatString(entry._workItemCode, 7)} - "
             "${workItems == null || workItems[entry._workItemCode] == null ?
-        '*** Work item not found [${entry._workItemCode}].***' : workItems[entry
-            ._workItemCode]
-            .name}";
+        '*** Work item not found [${entry._workItemCode}].***' :
+        workItems[entry._workItemCode].name}";
       } else {
         return entry._statement;
       }
     }();
 
-    String s = "${_formatString(description, 80)} :: "
-        "${_formatStatus(entry._previousPlannedStatus)} "
+    String s = "${formatString(description, 80)} :: "
+        "${formatStatus(entry._previousPlannedStatus)} "
         "${_reportedSymbol(entry)}> "
-        "${_formatStatus(entry._reportedStatus)} "
+        "${formatStatus(entry._reportedStatus)} "
         "${_plannedSymbol(entry)} "
-        "${_formatStatus(entry._plannedStatus)} :: "
-        "${_formatDouble(entry._hours)}";
-    print(s);
+        "${formatStatus(entry._plannedStatus)} :: "
+        "${formatDouble(entry._hours)}";
+    _p.writeln(s);
+  }
+
+  _printHours(_ConsolidatedDailyReportsDigester digester) {
+    if (digester != null) {
+      _p.section(r'HOURS');
+      double total = 0.0;
+      new List.from(digester._teamMemberHours.keys)
+        ..sort()
+        ..forEach((String s) {
+          double value = digester._teamMemberHours[s];
+          _p.writeln('${formatString(s, 10)} -> ${formatDouble(value)}');
+          if (value != null) total += value;
+        });
+      _p.writeln(r'----------------------------------');
+      _p.writeln('${formatString(r'  Total', 10)} -> ${formatDouble(total)}');
+      _p.writeln();
+    }
   }
 }
 
+String _progressSymbol(Status prevStatus, Status status) =>
+    prevStatus == null && status == null ? r':' :
+    prevStatus == null && status != null ? r'*' :
+    prevStatus != null && status != null && status > prevStatus ? r'+' :
+    prevStatus != null && status != null && status < prevStatus ? r'-' :
+    prevStatus != null && status == null ? r'-' :
+    r'>';
+
 String _reportedSymbol(_StandardDailyEntry entry) =>
-    entry._previousPlannedStatus == null && entry._reportedStatus != null
-        ? r'*' :
-    entry._previousPlannedStatus != null && entry._reportedStatus != null &&
-        entry._reportedStatus > entry._previousPlannedStatus ? r'+' :
-    entry._previousPlannedStatus != null && entry._reportedStatus != null &&
-        entry._reportedStatus < entry._previousPlannedStatus ? r'-' :
-    entry._previousPlannedStatus != null && entry._reportedStatus == null ?
-    r'-' :
-    entry._previousPlannedStatus == null && entry._reportedStatus == null
-        ? r':' : r'>';
+    _progressSymbol(entry._previousPlannedStatus, entry._reportedStatus);
 
 String _plannedSymbol(_StandardDailyEntry entry) =>
     entry._plannedStatus == null ? r'::' : entry._reportedStatus !=
@@ -252,41 +572,6 @@ Future<Map<String, RDWorkItem>> _findWorkItems(Iterable<String> wiCodes) async {
     stdout.write("${workItem.formattedID}     \r");
   }
   return map;
-}
-
-String _formatDate(DateTime date) {
-  if (date != null) {
-    String s = "${date.day < 10 ? r'0' : r''}${date.day}-"
-        "${date.month < 10 ? r'0' : r''}${date.month}-${date.year}";
-    return s;
-  }
-  return null;
-}
-
-String _formatString(String string, int length) {
-  if (string != null) {
-    if (string.length > length) return string.substring(0, length);
-    return _formatString(
-        '${string}                                  ', length);
-  }
-  return null;
-}
-
-String _formatStatus(Status status) {
-  if (status != null) {
-    return _formatString('${status.toString()}                 ', 9);
-  }
-  return _formatString(r'···', 9);
-}
-
-String _formatDouble(double value) {
-  String s = "           ${value == null ? r'n/a' : value.toString()}";
-  int i = s.lastIndexOf('.');
-  if (i > -1 && i == s.length - 2) {
-    s = '${s}0';
-  }
-  s = s.substring(s.length - 5);
-  return s;
 }
 
 typedef bool _EntryFilter(DailyEntry entry);
@@ -352,6 +637,8 @@ class _ConsolidatedDailyReportsDigester extends _DailyReportsDigester {
   Map<Environment, Status> _deploymentPlan = {};
   Map<Environment, Status> _deploymentReported = {};
 
+  Map<String, double> _teamMemberHours = {};
+
   double _hours = 0.0;
 
   double get hours => _hours;
@@ -399,6 +686,12 @@ class _ConsolidatedDailyReportsDigester extends _DailyReportsDigester {
 
   void _digestDailyEntry(DateTime date, DailyEntry entry) {
     if (entry != null) {
+      if (entry.scope == Scope.PAST && entry.hours != null &&
+          date == _endDate) {
+        _teamMemberHours[entry.teamMemberCode] =
+        _teamMemberHours[entry.teamMemberCode] == null ? entry.hours :
+        _teamMemberHours[entry.teamMemberCode] + entry.hours;
+      }
       if ((entry.process == Process.DEVELOPMENT ||
           entry.process == Process.INQUIRIES) &&
           (hasValue(entry.workItemCode) || hasValue(entry.statement))) {
@@ -497,8 +790,8 @@ class _ContextMapBuilder {
         Map<String, dynamic>>();
     if (digester != null) {
       Map<String, dynamic> map = {
-        'startDate': _formatDate(digester._startDate),
-        'endDate': _formatDate(digester._endDate)
+        'startDate': formatDate(digester._startDate),
+        'endDate': formatDate(digester._endDate)
       };
       List generatorModel = [];
 
@@ -564,11 +857,11 @@ class _ContextMapBuilder {
         map ['backColor'] = back ? '#ECECEC' : 'white';
         list.add(map);
       });
-      stdout.writeln();
+      _p.writeln();
       completer.complete(list);
     }).catchError((error) {
       _log.severe(error);
-      stderr.writeln(error);
+      _p.errorln(error);
       completer.completeError(error);
     });
 
@@ -591,7 +884,7 @@ class _ContextMapBuilder {
     entry._reportedStatus.toString();
     map['plannedStatus'] = entry._plannedStatus == null ? r'-' :
     entry._plannedStatus.toString();
-    map['hours'] = _formatDouble(entry._hours);
+    map['hours'] = formatDouble(entry._hours);
     String reportedSymbol = _reportedSymbol(entry);
     String plannedSymbol = _plannedSymbol(entry);
     map['reportedStatusSymbol'] = reportedSymbol;
@@ -665,7 +958,7 @@ class _HtmlWorker {
           completer.completeError(error);
         });
       } else {
-        stderr.writeln('No context for HTML.');
+        _p.errorln('No context for HTML.');
         completer.complete();
       }
     }).catchError((error) {
@@ -689,7 +982,7 @@ class _ResultWorker {
 
   Future _process() {
     Completer completer = new Completer();
-    if (_conf['out']) print(_result);
+    if (_conf['out']) _p.writeln(_result);
     if (_conf['mail'] != null) {
       Mailer mailer = new Mailer.fromMap(_conf['mail']);
       mailer.sendHtml(_subject, _result).then((_) {
