@@ -78,6 +78,8 @@ class RDRisk implements Comparable<RDRisk> {
   static const RDRisk NONE = const RDRisk._internal(
       r'-- No Entry --', 4, RDPriority.NONE);
 
+  static const RDRisk MAX_RISK = SHOWSTOPPER;
+
   static const VALUES = const [NONE, LOW, MEDIUM, HIGH, SHOWSTOPPER];
 
   final String _name;
@@ -122,6 +124,8 @@ class RDSeverity implements Comparable<RDSeverity> {
       r'Minor Problem', 2);
   static const RDSeverity COSMETIC = const RDSeverity._internal(r'Cosmetic', 3);
   static const RDSeverity NONE = const RDSeverity._internal(r'None', 4);
+
+  static const RDSeverity MAX_SEVERITY = CRASH;
 
   static const VALUES = const
   [NONE, COSMETIC, MINOR_PROBLEM, MAJOR_PROBLEM, CRASH];

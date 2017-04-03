@@ -7,6 +7,7 @@ import 'package:mustache4dart/mustache4dart.dart';
 import 'package:resource/resource.dart';
 
 import 'package:scrum_tools/src/daily/daily_entities.dart';
+import 'package:scrum_tools/src/daily/templates/daily_html_template.dart';
 import 'package:scrum_tools/src/daily/comparators.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/rally/basic_rally_service.dart'
@@ -78,13 +79,12 @@ class ListDailies extends UtilOptionCommand {
     List<DailyReport> list = await dailyDAO.getLastDailyReports(
         dateReference: value, number: 2);
     if (hasValue(list)) {
-      RDIteration currentIteration = await rallyService.currentIteration;
       _digest(list).then((Map<String, dynamic> digested) {
-        if (hasValue(digested) && hasValue(digested['team-members-map'])) {
-          if (digested['previous-date'] == null) {
+        if (hasValue(digested) && hasValue(digested[r'team-members-map'])) {
+          if (digested[r'previous-date'] == null) {
             _p.title('Daily report ${formatDate(
-                list[0].date)}. Hours: ${digested['hours-a'] +
-                digested['hours-b']} [A:${digested['hours-a']}/B:${digested['hours-b']}]');
+                list[0].date)}. Hours: ${digested[r'hours-a'] +
+                digested[r'hours-b']} [A:${digested[r'hours-a']}/B:${digested[r'hours-b']}]');
           } else {
             _p.title('Daily report ${formatDate(list[1].date)} >> ${formatDate(
                 list[0].date)}. Hours: ${digested['hours-a'] +
@@ -94,11 +94,11 @@ class ListDailies extends UtilOptionCommand {
             _p.section(r'Current plan -NONE-');
           } else {
             List<String> teamMembers = new List.from(
-                digested['team-members-map'].keys);
+                digested[r'team-members-map'].keys);
             teamMembers.sort();
             teamMembers.forEach((String teamMember) {
               Map<String,
-                  dynamic> tmMap = digested['team-members-map'][teamMember];
+                  dynamic> tmMap = digested[r'team-members-map'][teamMember];
               _p.section('Current plan for ${teamMember}', r'··············');
               List<DailyEntry> currentPlan =
               tmMap[r'plan'];
@@ -112,15 +112,11 @@ class ListDailies extends UtilOptionCommand {
                 _p.writeln();
                 cols.forEach((PrinterColumn col) => col.writeSeparator());
                 _p.writeln();
-                PrioritizationComparator prioritizationComparator = new PrioritizationComparator(
-                    currentIteration);
-                currentPlan.sort(composeComparator(wrapWIComparator(
-                    prioritizationComparator.compare, digested['work-items'])));
                 currentPlan.forEach((DailyEntry entry) {
                   cols[0].write(entry.process);
                   if (hasValue(entry.workItemCode)) {
                     cols[1].write(
-                        '${entry.workItemCode} ${digested['work-items'][entry
+                        '${entry.workItemCode} ${digested[r'work-items'][entry
                             .workItemCode].name}');
                   } else {
                     cols[1].write(_desc(entry));
@@ -149,8 +145,8 @@ class ListDailies extends UtilOptionCommand {
               //_p.writeln(r'*****************************************');
               //##############################################################
               _p.section(
-                  'Report from ${teamMember}. Hours: ${tmMap['hours-a'] +
-                      tmMap['hours-b']} [A:${tmMap['hours-a']}/B:${tmMap['hours-b']}]',
+                  'Report from ${teamMember}. Hours: ${tmMap[r'hours-a'] +
+                      tmMap[r'hours-b']} [A:${tmMap[r'hours-a']}/B:${tmMap[r'hours-b']}]',
                   r'··············');
               List<DailyEntry> reported = tmMap[r'reported'];
               if (hasValue(reported)) {
@@ -165,20 +161,19 @@ class ListDailies extends UtilOptionCommand {
                 _p.writeln();
                 cols.forEach((PrinterColumn col) => col.writeSeparator());
                 _p.writeln();
-                reported.sort(composeComparator(processPart, keyPart));
                 reported.forEach((DailyEntry entry) {
                   cols[0].write(entry.process);
                   if (hasValue(entry.workItemCode)) {
                     cols[1].write(
-                        '${entry.workItemCode} ${digested['work-items'][entry
+                        '${entry.workItemCode} ${digested[r'work-items'][entry
                             .workItemCode].name}');
                   } else {
                     cols[1].write(_desc(entry));
                   }
                   String key = _key(entry);
-                  Status prevStatus = tmMap['previous-plan'] != null &&
-                      tmMap['previous-plan'][key] != null ?
-                  tmMap['previous-plan'][key] : null;
+                  Status prevStatus = tmMap[r'previous-plan'] != null &&
+                      tmMap[r'previous-plan'][key] != null ?
+                  tmMap[r'previous-plan'][key] : null;
                   cols[2].write(
                       prevStatus == null ? '-' : prevStatus.toString());
                   cols[3].write(
@@ -211,12 +206,11 @@ class ListDailies extends UtilOptionCommand {
                     _p.column(r'Report. Sta.', 12),
                     _p.column(r' Hours', 6),
                   ];
-                  unreported.sort(composeComparator(processPart, keyPart));
                   unreported.forEach((DailyEntry entry) {
                     cols[0].write(entry.process);
                     if (hasValue(entry.workItemCode)) {
                       cols[1].write(
-                          '${entry.workItemCode} ${digested['work-items'][entry
+                          '${entry.workItemCode} ${digested[r'work-items'][entry
                               .workItemCode].name}');
                     } else {
                       cols[1].write(_desc(entry));
@@ -251,104 +245,125 @@ class ListDailies extends UtilOptionCommand {
       });
     }
   }
+}
 
-  String _desc(DailyEntry entry) {
-    if (hasValue(entry.workItemCode)) return entry.workItemCode;
-    if (hasValue(entry.statement)) return '* ${entry.statement}';
-    return '~ ${entry.notes}';
-  }
+String _desc(DailyEntry entry) => displayDescription(entry);
 
-  String _key(DailyEntry entry) {
-    return '${entry.process.toString()} # ${_desc(entry)}';
-  }
+String _key(DailyEntry entry) => trackingKey(entry);
 
-  Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
-    Set<String> workItemCodes = new Set<String>();
-    double hoursA = 0.0;
-    double hoursB = 0.0;
-    Map<String, dynamic> byTeamMember = {};
-    list[0].entries.forEach((DailyEntry entry) {
-      if (hasValue(entry.workItemCode)) workItemCodes.add(entry.workItemCode);
-      Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
-          entry.teamMemberCode, () {
-        return {'hours-a': 0.0, 'hours-b': 0.0};
+Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
+  Set<String> workItemCodes = new Set<String>();
+  double hoursA = 0.0;
+  double hoursB = 0.0;
+  Map<String, dynamic> byTeamMember = {};
+  list[0].entries.forEach((DailyEntry entry) {
+    if (hasValue(entry.workItemCode)) workItemCodes.add(entry.workItemCode);
+    Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
+        entry.teamMemberCode, () {
+      return {
+        'team-member-code': entry.teamMemberCode,
+        'hours-a': 0.0,
+        'hours-b': 0.0
+      };
+    });
+    if (entry.scope == Scope.TODAY) {
+      List<DailyEntry> currentPlan = teamMemberRecord.putIfAbsent(
+          r'plan', () {
+        return [];
       });
-      if (entry.scope == Scope.TODAY) {
-        List<DailyEntry> currentPlan = teamMemberRecord.putIfAbsent(
-            r'plan', () {
-          return [];
-        });
-        currentPlan.add(entry);
-      } else {
-        Set<String> reportedKeys = teamMemberRecord.putIfAbsent(
-            r'reported-keys', () => new Set<String>());
-        reportedKeys.add(_key(entry));
-        List<DailyEntry> reported = teamMemberRecord.putIfAbsent(
-            r'reported', () => []);
-        reported.add(entry);
-        if (entry.hours != null) {
-          if (hasValue(entry.workItemCode) || hasValue(entry.statement)) {
-            teamMemberRecord['hours-a'] += entry.hours;
-            hoursA += entry.hours;
-          } else {
-            teamMemberRecord['hours-b'] += entry.hours;
-            hoursB += entry.hours;
-          }
+      currentPlan.add(entry);
+    } else {
+      Set<String> reportedKeys = teamMemberRecord.putIfAbsent(
+          r'reported-keys', () => new Set<String>());
+      reportedKeys.add(_key(entry));
+      List<DailyEntry> reported = teamMemberRecord.putIfAbsent(
+          r'reported', () => []);
+      reported.add(entry);
+      if (entry.hours != null) {
+        if (hasValue(entry.workItemCode) || hasValue(entry.statement)) {
+          teamMemberRecord['hours-a'] += entry.hours;
+          hoursA += entry.hours;
+        } else {
+          teamMemberRecord['hours-b'] += entry.hours;
+          hoursB += entry.hours;
         }
       }
-    });
-    Map<String, dynamic> map = {
-      'date': list[0].date.toIso8601String(),
-      'hours-a': hoursA,
-      'hours-b': hoursB,
-      'team-members-map': byTeamMember
-    };
-
-    if (list.length > 1) {
-      map['previous-date'] = list[1].date.toIso8601String();
-      if (hasValue(list[1].entries)) {
-        list[1].entries.forEach((DailyEntry entry) {
-          if (entry.scope == Scope.TODAY) {
-            if (hasValue(entry.workItemCode)) workItemCodes.add(
-                entry.workItemCode);
-            Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
-                entry.teamMemberCode, () {
-              return {'hours-a': 0.0, 'hours-b': 0.0};
-            });
-            Map<String, Status> previousPlan = teamMemberRecord.putIfAbsent(
-                r'previous-plan', () {
-              return {};
-            });
-            String key = _key(entry);
-            Set<String> reportedKeys = teamMemberRecord[r'reported-keys'];
-            if (hasValue(reportedKeys) && reportedKeys.contains(key)) {
-              Status stat = previousPlan.putIfAbsent(key, () => entry.status);
-              if (stat < entry.status) previousPlan[key] = entry.status;
-            } else {
-              List<DailyEntry> unreported = teamMemberRecord.putIfAbsent(
-                  'unreported', () => []);
-              unreported.add(entry);
-            }
-          }
-        });
-      }
     }
+  });
+  Map<String, dynamic> map = {
+    'date': list[0].date,
+    'hours-a': hoursA,
+    'hours-b': hoursB,
+    'team-members-map': byTeamMember
+  };
 
-    Completer<Map<String, dynamic>> completer = new Completer<
-        Map<String, dynamic>>();
-    if (hasValue(workItemCodes)) {
-      map['work-item-codes'] = workItemCodes;
+  if (list.length > 1) {
+    map['previous-date'] = list[1].date;
+    if (hasValue(list[1].entries)) {
+      list[1].entries.forEach((DailyEntry entry) {
+        if (entry.scope == Scope.TODAY) {
+          if (hasValue(entry.workItemCode)) workItemCodes.add(
+              entry.workItemCode);
+          Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
+              entry.teamMemberCode, () {
+            return {'hours-a': 0.0, 'hours-b': 0.0};
+          });
+          Map<String, Status> previousPlan = teamMemberRecord.putIfAbsent(
+              r'previous-plan', () {
+            return {};
+          });
+          String key = _key(entry);
+          Set<String> reportedKeys = teamMemberRecord[r'reported-keys'];
+          if (hasValue(reportedKeys) && reportedKeys.contains(key)) {
+            Status stat = previousPlan.putIfAbsent(key, () => entry.status);
+            if (stat < entry.status) previousPlan[key] = entry.status;
+          } else {
+            List<DailyEntry> unreported = teamMemberRecord.putIfAbsent(
+                'unreported', () => []);
+            unreported.add(entry);
+          }
+        }
+      });
+    }
+  }
+
+  Completer<Map<String, dynamic>> completer = new Completer<
+      Map<String, dynamic>>();
+  if (hasValue(workItemCodes)) {
+    map['work-item-codes'] = workItemCodes;
+
+    rallyService.currentIteration.then((RDIteration currentIteration) {
+      map['current-iteration'] = currentIteration;
       _findWorkItems(workItemCodes).then((Map<String, RDWorkItem> wItems) {
         map['work-items'] = wItems;
+        PrioritizationComparator prioritizationComparator = new PrioritizationComparator(
+            currentIteration);
+        DailyComparator dailyComparator1 = composeComparator(wrapWIComparator(
+            prioritizationComparator.compare, wItems));
+
+        DailyComparator dailyComparator2 = composeComparator(
+            processPart, keyPart);
+
+        byTeamMember.keys.forEach((String key) {
+          if (hasValue(byTeamMember[key]['plan'])) {
+            byTeamMember[key]['plan'].sort(dailyComparator1);
+          }
+          if (hasValue(byTeamMember[key]['reported'])) {
+            byTeamMember[key]['reported'].sort(dailyComparator2);
+          }
+          if (hasValue(byTeamMember[key]['unreported'])) {
+            byTeamMember[key]['unreported'].sort(dailyComparator2);
+          }
+        });
         completer.complete(map);
       }).whenComplete(() {
         rallyService.close();
       });
-    } else {
-      completer.complete(map);
-    }
-    return completer.future;
+    });
+  } else {
+    completer.complete(map);
   }
+  return completer.future;
 }
 
 typedef Future _entriesPrinter();
@@ -377,11 +392,11 @@ class SpreadDaily extends UtilOptionCommand {
       if (!hasValue(reports)) {
         _p.writeln(r'No daily report found!.');
       } else {
-        switch (conf['mode']) {
-          case 'html':
+        switch (conf[r'mode']) {
+          case r'html':
             _ConsolidatedDailyReportsDigester digester =
             new _ConsolidatedDailyReportsDigester(reports);
-            _HtmlWorker htmlW = new _HtmlWorker(digester, conf['template']);
+            _HtmlWorker htmlW = new _HtmlWorker(digester, conf[r'template']);
             htmlW._process().then((String html) {
               _ResultWorker resultW = new _ResultWorker(conf,
                   '[PSNow] Daily report ${formatDate(
@@ -390,7 +405,23 @@ class SpreadDaily extends UtilOptionCommand {
               resultW._process();
             }).catchError((error) {});
             break;
-          case 'html-member':
+          case r'html-member':
+            _digest(reports).then((Map<String, dynamic> ctx) {
+              TeamMemberReportTemplate tmpl = new TeamMemberReportTemplate(ctx);
+              List<Message> messages = [];
+              ctx[r'team-members-map'].keys.forEach((String teamMemberCode) {
+                String html = tmpl.buildText(teamMemberCode);
+                Message message = new Message(tmpl.subject(teamMemberCode),
+                    html)
+                  //..recipients.add('${teamMemberCode}@emergya.com')
+                  ..recipients.add('jmurcia@emergya.com')
+                  ;
+                messages.add(message);
+                //print(html);
+              });
+              Mailer mailer = new Mailer.fromMap(conf['mail']);
+              mailer.sendAll(messages);
+            });
             break;
           default:
             _ConsolidatedDailyReportsDigester digester =

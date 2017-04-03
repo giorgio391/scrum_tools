@@ -1,5 +1,14 @@
 import 'package:scrum_tools/src/utils/helpers.dart';
 
+String displayDescription(DailyEntry entry) {
+  if (hasValue(entry.workItemCode)) return entry.workItemCode;
+  if (hasValue(entry.statement)) return '* ${entry.statement}';
+  return '~ ${entry.notes}';
+}
+
+String trackingKey(DailyEntry entry) =>
+    '${entry.process.toString()} # ${displayDescription(entry)}';
+
 class Environment implements Comparable<Environment> {
 
   static const LOCAL = const Environment._internal('LOCAL', 0);
@@ -121,7 +130,7 @@ class Process implements Comparable<Process> {
     return null;
   }
 
-  int compareTo(Process other) => other._order - this._order;
+  int compareTo(Process other) => this._order - other._order;
 
   @override
   String toString() {
