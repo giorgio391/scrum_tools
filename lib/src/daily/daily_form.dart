@@ -75,8 +75,13 @@ class DailyForm {
     if (previous != model.teamMemberCode) {
       model.scope = Scope.PAST;
       model.process = Process.DEVELOPMENT;
-      model.status = Status.WIP;
+      status = null;
     }
+  }
+
+  Status get status => model != null ? model.status : null;
+  void set status(dynamic status) {
+    model.status = status is Status ? status : null;
   }
 
   @Input()

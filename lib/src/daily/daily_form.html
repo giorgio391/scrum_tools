@@ -49,10 +49,11 @@
             </div>
         </div>
         <div class="daily-form-row row">
-            <div class="form-group status col-md-5">
+            <div class="form-group status col-md-5" [class.has-error]="!statusControl.valid">
                 <label for="status">Status</label>
-                <select class="form-control" id="status" required
-                        [(ngModel)]="model.status" ngControl="status">
+                <select #statusControl="ngForm" class="form-control" id="status" required
+                        [(ngModel)]="status" ngControl="status">
+                    <option [ngValue]="null">-None-</option>
                     <option *ngFor="let status of statuses" [ngValue]="status">{{status.value}}</option>
                 </select>
             </div>

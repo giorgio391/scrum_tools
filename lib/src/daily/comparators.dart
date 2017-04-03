@@ -1,4 +1,5 @@
 import 'package:scrum_tools/src/daily/daily_entities.dart';
+import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 
 typedef int DailyComparator(DailyEntry entry1, DailyEntry entry2);
@@ -44,6 +45,15 @@ int keyPartDesc(DailyEntry entry1, DailyEntry entry2) {
   return -keyPart(entry1, entry2);
 }
 
+DailyComparator wrapWIComparator(
+    int wiComparator(RDWorkItem wi1, RDWorkItem wi2),
+    Map<String, RDWorkItem> wiMap) =>
+        (DailyEntry e1, DailyEntry e2) {
+      RDWorkItem w1 = wiMap[e1.workItemCode];
+      RDWorkItem w2 = wiMap[e2.workItemCode];
+      return wiComparator(w1, w2);
+    };
+
 DailyComparator composeComparator(DailyComparator part1,
     [DailyComparator part2, DailyComparator part3, DailyComparator part4,
       DailyComparator part5, DailyComparator part6]) {
@@ -56,7 +66,7 @@ DailyComparator composeComparator(DailyComparator part1,
   return (DailyEntry entry1, DailyEntry entry2) {
     for (DailyComparator part in list) {
       int c = part(entry1, entry2);
-      if (c != 0) return 0;
+      if (c != 0) return c;
     }
     return 0;
   };
@@ -66,7 +76,6 @@ int _common(DailyEntry entry1, DailyEntry entry2) {
   if (entry1 == null && entry2 == null) return 0;
   if (entry1 != null && entry2 == null) return -1;
   if (entry1 == null && entry2 != null) return 1;
-
   return 0;
 }
 

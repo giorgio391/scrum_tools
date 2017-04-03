@@ -52,7 +52,7 @@ String formatDouble(double value, [int length = 5]) {
     if (i == s.length - 2) s = '${s}0';
     return formatStringRight(s, length);
   }
-  return null;
+  return formatStringRight(r'n/a', length);
 }
 
 String formatList(List value) {

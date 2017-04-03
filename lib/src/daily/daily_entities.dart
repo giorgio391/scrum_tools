@@ -92,13 +92,14 @@ class Scope implements Comparable<Scope> {
 class Process implements Comparable<Process> {
 
   static const DEFINITION = const Process._internal(0, 'DEFINITION');
-  static const DEVELOPMENT = const Process._internal(1, 'DEVELOPMENT');
-  static const CI = const Process._internal(2, 'CI');
-  static const DEPLOYMENT = const Process._internal(3, 'DEPLOYMENT');
-  static const INQUIRIES = const Process._internal(4, 'INQUIRIES');
+  static const OPERATIONS = const Process._internal(1, 'OPERATIONS');
+  static const DEVELOPMENT = const Process._internal(2, 'DEVELOPMENT');
+  static const CI = const Process._internal(3, 'CI');
+  static const DEPLOYMENT = const Process._internal(4, 'DEPLOYMENT');
+  static const INQUIRIES = const Process._internal(5, 'INQUIRIES');
 
   static final List<Process> VALUES = new List.unmodifiable(
-      [DEFINITION, DEVELOPMENT, CI, DEPLOYMENT, INQUIRIES]);
+      [DEFINITION, OPERATIONS, DEVELOPMENT, CI, DEPLOYMENT, INQUIRIES]);
 
   final String _value;
   final int _order;
@@ -183,7 +184,7 @@ class Status implements Comparable<Status> {
 
 class DailyEntry implements Mappable {
 
-  static const defaultStatus = Status.WIP;
+  static const defaultStatus = null;
   static const defaultProcess = Process.DEVELOPMENT;
 
   Process process = defaultProcess;

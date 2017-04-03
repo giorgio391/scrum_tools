@@ -9,6 +9,8 @@ import 'package:resource/resource.dart';
 import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/daily/comparators.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
+import 'package:scrum_tools/src/rally/basic_rally_service.dart'
+    show PrioritizationComparator;
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command_line/config.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
@@ -76,6 +78,7 @@ class ListDailies extends UtilOptionCommand {
     List<DailyReport> list = await dailyDAO.getLastDailyReports(
         dateReference: value, number: 2);
     if (hasValue(list)) {
+      RDIteration currentIteration = await rallyService.currentIteration;
       _digest(list).then((Map<String, dynamic> digested) {
         if (hasValue(digested) && hasValue(digested['team-members-map'])) {
           if (digested['previous-date'] == null) {
@@ -109,7 +112,10 @@ class ListDailies extends UtilOptionCommand {
                 _p.writeln();
                 cols.forEach((PrinterColumn col) => col.writeSeparator());
                 _p.writeln();
-                currentPlan.sort(composeComparator(processPart, keyPart));
+                PrioritizationComparator prioritizationComparator = new PrioritizationComparator(
+                    currentIteration);
+                currentPlan.sort(composeComparator(wrapWIComparator(
+                    prioritizationComparator.compare, digested['work-items'])));
                 currentPlan.forEach((DailyEntry entry) {
                   cols[0].write(entry.process);
                   if (hasValue(entry.workItemCode)) {
@@ -406,7 +412,9 @@ class SpreadDaily extends UtilOptionCommand {
       Iterable<_StandardDailyEntry> devEntries = digester._devEntriesByRank;
       if (hasValue(devEntries)) {
         entriesPrinter.add(() {
-          return _printEntries(r'DEVELOPMENT', devEntries);
+          return _printEntries(
+              '${Process.OPERATIONS.toString()} / ${Process.DEVELOPMENT
+                  .toString()}', devEntries);
         });
       }
       Iterable<_StandardDailyEntry> inquiryEntries = digester
@@ -693,6 +701,7 @@ class _ConsolidatedDailyReportsDigester extends _DailyReportsDigester {
         _teamMemberHours[entry.teamMemberCode] + entry.hours;
       }
       if ((entry.process == Process.DEVELOPMENT ||
+          entry.process == Process.OPERATIONS ||
           entry.process == Process.INQUIRIES) &&
           (hasValue(entry.workItemCode) || hasValue(entry.statement))) {
         String key = hasValue(entry.workItemCode) ? entry.workItemCode :
