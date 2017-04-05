@@ -32,7 +32,7 @@
     <tr style="background: {{backColor}};">
         {{#workItem?}}
         <td class="wi-code" title="Work item code." style="font-weight: bold; padding: 4px;" valign="top"><a
-                href="https://rally1.rallydev.com/#/55308115013d/search?keywords=DE5887" target="_blank"
+                href="https://rally1.rallydev.com/#/55308115013d/search?keywords={{workItemCode}}" target="_blank"
                 style="text-decoration: none;">{{workItemCode}}</a></td>
         <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">
             {{workItemTitle}}
@@ -83,7 +83,7 @@
     <tr style="background: {{backColor}};">
         {{#workItem?}}
         <td class="wi-code" title="Work item code." style="font-weight: bold; padding: 4px;" valign="top"><a
-                href="https://rally1.rallydev.com/#/55308115013d/search?keywords=DE5887" target="_blank"
+                href="https://rally1.rallydev.com/#/55308115013d/search?keywords={{workItemCode}}" target="_blank"
                 style="text-decoration: none;">{{workItemCode}}</a></td>
         <td class="wi-title" title="Work item title." valign="top" style="padding: 4px;">
             {{workItemTitle}}
@@ -178,5 +178,3 @@
 <div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: black; background: LightGreen;">Status beyond the plan</div>
 <div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: white; background: red;">Status below the plan</div>
 <div style="display: inline-block; margin: 5px; padding: 5px; font-weight: bold; color: black; background: gold;">Not previously planned</div>
-
-

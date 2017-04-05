@@ -115,6 +115,7 @@ class Mailer {
       });
       return completer.future;
     }
+    return new Future.value(null);
   }
 
   Future sendHtml(String subject, String html) {

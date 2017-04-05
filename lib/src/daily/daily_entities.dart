@@ -1,9 +1,10 @@
 import 'package:scrum_tools/src/utils/helpers.dart';
 
 String displayDescription(DailyEntry entry) {
-  if (hasValue(entry.workItemCode)) return entry.workItemCode;
-  if (hasValue(entry.statement)) return '* ${entry.statement}';
-  return '~ ${entry.notes}';
+  if (hasValue(entry.workItemCode)) return entry.workItemCode.trim();
+  if (hasValue(entry.statement)) return '* ${entry.statement.trim()}';
+  if (hasValue(entry.notes)) return '~ ${entry.notes.trim()}';
+  return r'!';
 }
 
 String trackingKey(DailyEntry entry) =>

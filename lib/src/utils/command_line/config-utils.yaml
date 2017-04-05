@@ -42,6 +42,12 @@ spread_daily:
     mail:
       ~extends: spread_daily/conf-3/mail
       recipients: gordon-all@emergya.com
+  conf-po:
+      ~extends: spread_daily/conf-3
+      mode: html
+      mail:
+        ~extends: spread_daily/conf-3/mail
+        recipients: jmurcia@emergya.com, david.pinczes@hpe.com, iulia-lacramioara.bogatoiu@hpe.com
   conf-member:
     ~extends: spread_daily/conf-3
     mode: html-member

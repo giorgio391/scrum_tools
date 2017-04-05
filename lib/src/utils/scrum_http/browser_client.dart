@@ -13,18 +13,16 @@ class BrowserScrumHttpClient implements ScrumHttpClient {
     return null;
   }
 
-  void handleError(Completer completer, dynamic error) {
+  String handleError(dynamic error) {
     if (error is ProgressEvent) {
       ProgressEvent pe = error as ProgressEvent;
       if (pe.target is HttpRequest) {
         HttpRequest request = pe.target as HttpRequest;
-        completer.completeError(
-            "${request.status} - ${request.statusText} ::: ${request
-                .responseUrl}");
-        return;
+        return "${request.status} - ${request.statusText} ::: ${request
+            .responseUrl}";
       }
     }
-    completer.completeError(error.toString());
+    return error.toString();
   }
 
   void close({bool force: false}) {

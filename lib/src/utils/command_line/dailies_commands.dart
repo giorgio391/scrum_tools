@@ -275,7 +275,8 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
     } else {
       Set<String> reportedKeys = teamMemberRecord.putIfAbsent(
           r'reported-keys', () => new Set<String>());
-      reportedKeys.add(_key(entry));
+      String key = _key(entry);
+      reportedKeys.add(key);
       List<DailyEntry> reported = teamMemberRecord.putIfAbsent(
           r'reported', () => []);
       reported.add(entry);
@@ -413,7 +414,7 @@ class SpreadDaily extends UtilOptionCommand {
                 String html = tmpl.buildText(teamMemberCode);
                 Message message = new Message(tmpl.subject(teamMemberCode),
                     html)
-                  //..recipients.add('${teamMemberCode}@emergya.com')
+                  ..recipients.add('${teamMemberCode}@emergya.com')
                   ..recipients.add('jmurcia@emergya.com')
                   ;
                 messages.add(message);

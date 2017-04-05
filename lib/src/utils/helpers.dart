@@ -65,7 +65,7 @@ abstract class ScrumHttpClient {
 
   Future<String> getString(String url);
 
-  void handleError(Completer completer, dynamic error);
+  String handleError(dynamic error);
 
   void close({bool force});
 

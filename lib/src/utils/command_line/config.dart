@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:scrum_tools/src/utils/configurer.dart' as cfg;
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
 import 'package:scrum_tools/src/utils/command_line/dailies_commands.dart';
+import 'package:scrum_tools/src/utils/command_line/wi_commands.dart';
 import 'package:scrum_tools/src/server/dao/daily_dao.dart';
 import 'package:scrum_tools/src/server/rally_proxy.dart';
 import 'package:scrum_tools/src/server/dao/impl/daily_file_dao.dart';
@@ -17,7 +18,8 @@ import 'package:scrum_tools/src/rally/basic_rally_service.dart';
 
 const Map<String, UtilOptionCommand> commands = const {
   'daily': const ListDailies(),
-  'sdaily': const SpreadDaily()
+  'sdaily': const SpreadDaily(),
+  'wi': const WorkItemsCommands()
 };
 
 // **************************************************************************

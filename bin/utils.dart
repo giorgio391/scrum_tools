@@ -28,7 +28,9 @@ void main(List<String> args) {
         try {
           commands[commandName].execute(commandName, argResults, option);
           commandFound = true;
-        } on FormatException {}
+        } on FormatException catch(e) {
+          stderr.writeln(e);
+        }
       }
     }
 

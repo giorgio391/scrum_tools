@@ -84,7 +84,7 @@ class RallyDevProxy implements ScrumHttpClient {
   }
 
   @override
-  void handleError(Completer completer, dynamic error) {}
+  String handleError(dynamic error) => error.toString();
 
   void close({bool force: false}) {
     _httpClient.close(force: force);
