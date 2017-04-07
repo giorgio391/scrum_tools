@@ -1,5 +1,6 @@
 import 'package:angular2/core.dart';
 import 'package:scrum_tools/scrum_tools_rally.dart';
+import 'package:scrum_tools/src/rally/wi_validator.dart';
 
 @Component(selector: 'rd-wi-validation',
     templateUrl: 'wi_validation_component.html',
