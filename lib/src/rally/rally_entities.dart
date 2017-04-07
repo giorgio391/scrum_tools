@@ -18,7 +18,7 @@ class RDScheduleState implements Comparable<RDScheduleState> {
   static const RDScheduleState IN_PROGRESS = const RDScheduleState._internal(
       r'In-Progress', r'P', 2);
   static const RDScheduleState COMPLETED = const RDScheduleState._internal(
-      r'Completed', r'P', 3);
+      r'Completed', r'C', 3);
   static const RDScheduleState ACCEPTED = const RDScheduleState._internal(
       r'Accepted', r'A', 4);
   static const RDScheduleState ACCEPTED_BY_OWNER = const RDScheduleState

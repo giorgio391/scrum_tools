@@ -14,15 +14,27 @@ class BasicRallyService {
 
   //static const int _qaDeployerID = 55504055635;
 
+  static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
+
   static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20today))&pagesize=200&fetch=true';
 
-  static const String _proDeploymentPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  static const String _uat2preDeploymentPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
+  static const String _uat2preDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
 
-  static const String _uat2proDeploymentPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _uat2proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  //static const String _preDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
+  static const String _preDeploymentPendingQuery = '((((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
+
+  static const String _uatDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"UAT"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))&pagesize=200&fetch=true';
+
+  static final String _defectIterationMissingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Priority%20=%20"${RDPriority
+      .MAX_PRIORITY.name.replaceAll(
+      r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
+  static final String _usIterationMissingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Risk%20=%20"${RDRisk
+      .MAX_RISK.name.replaceAll(
+      r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
+
 
   int get defaultProjectID => _projectId;
 
@@ -52,6 +64,10 @@ class BasicRallyService {
     _portfolioItemCache =
     new Cache<String, RDPortfolioItem>.ready(_portfolioItemRetriever);
   }
+
+  String _byIterationNameQuery(String iterationName) =>
+      '((Project.ObjectID%20=%20${_projectId})%20AND%20(Iteration.Name%20=%20"${iterationName
+          .replaceAll(r' ', '%20')}"))&pagesize=250&fetch=true';
 
   String _pendingByIterationNameQuery(String iterationName) =>
       '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.Name%20=%20"${iterationName
@@ -391,11 +407,41 @@ class BasicRallyService {
     return _queryWorkItemsSortPrioritization(query);
   }
 
+  Future<Iterable<RDWorkItem>> getMissedIteration() {
+    Completer<List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
+    Future<List<RDWorkItem>> defectsFuture = _queryWorkItemsByType(
+        _defect, _defectIterationMissingQuery);
+    Future<List<RDWorkItem>> usFuture = _queryWorkItemsByType(
+        _us, _usIterationMissingQuery);
+    Future.wait([defectsFuture, usFuture]).then((List<List<RDWorkItem>> list) {
+      List<RDWorkItem> compiledList = new List<RDWorkItem>();
+      list.forEach((Iterable<RDWorkItem> ite) => compiledList.addAll(ite));
+      if (hasValue(compiledList)) {
+        compiledList.sort(FormattedIDComparator);
+        completer.complete(compiledList);
+      } else {
+        completer.complete(null);
+      }
+    }).catchError((error) {
+      _handleError(completer, error);
+    });
+    return completer.future;
+  }
+
+  Future<Iterable<RDWorkItem>> getByIteration(String iterationName) =>
+      _queryWorkItemsSortByCode(_byIterationNameQuery(iterationName));
+
   Future<Iterable<RDWorkItem>> getDevTeamPending() =>
       _queryWorkItemsSortPrioritization(_devTeamPendingQuery);
 
   Future<Iterable<RDWorkItem>> getPRODeploymentPending() =>
       _queryWorkItemsSortByCode(_proDeploymentPendingQuery);
+
+  Future<Iterable<RDWorkItem>> getPREDeploymentPending() =>
+      _queryWorkItemsSortByCode(_preDeploymentPendingQuery);
+
+  Future<Iterable<RDWorkItem>> getUATDeploymentPending() =>
+      _queryWorkItemsSortByCode(_uatDeploymentPendingQuery);
 
   Future<Iterable<RDWorkItem>> getUAT2PREDeploymentPending() =>
       _queryWorkItemsSortByCode(_uat2preDeploymentPendingQuery);
@@ -515,3 +561,4 @@ RDSeverity inferSeverity(RDWorkItem workItem) =>
     workItem is RDDefect ? workItem.severity :
     workItem is RDHierarchicalRequirement ? RDSeverity.MINOR_PROBLEM
         : null;
+
