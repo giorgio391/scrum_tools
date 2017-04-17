@@ -73,9 +73,6 @@ class DailyReporter {
       this._restService) {
     _eventBus.addTeamMemberListener(teamMemberCodeReceived);
     Map<String, String> params = Uri.base.queryParameters;
-    print(Uri.base.toString());
-    print(Uri.base.queryParameters.toString());
-
     DateTime date = hasValue(params) && hasValue(params['date']) ? DateTime
         .parse(params['date']) : new DateTime
         .now();
