@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:html';
 import 'package:angular2/core.dart';
@@ -61,12 +62,54 @@ class DailyReporter {
       _currentWorkItem == null ||
           _currentWorkItem.project.ID == _rallyService.defaultProjectID;
 
+  DateTime _reportDate;
+
+  DateTime get reportDate => _reportDate;
+
   @ViewChild(DailyForm)
   DailyForm dailyForm;
 
   DailyReporter(this._rallyService, this._eventBus, this._commands,
       this._restService) {
     _eventBus.addTeamMemberListener(teamMemberCodeReceived);
+    Map<String, String> params = Uri.base.queryParameters;
+    print(Uri.base.toString());
+    print(Uri.base.queryParameters.toString());
+
+    DateTime date = hasValue(params) && hasValue(params['date']) ? DateTime
+        .parse(params['date']) : new DateTime
+        .now();
+    _restService.getDaily(date).then((DailyReport report) {
+      if (report != null) {
+        entries = report.entries;
+        if (hasValue(entries)) {
+          Set<String> wis = new Set<String>();
+          entries.where((DailyEntry entry) =>
+          hasValue(entry.workItemCode) && entry.scope == Scope.PAST).forEach((
+              DailyEntry entry) {
+            wis.add(entry.workItemCode);
+          });
+          if (hasValue(wis)) wis.forEach((String wiCode) {
+            DailyEntry e = _findStatusControl(entries, wiCode);
+            if (e != null) _statusControl[wiCode] = e;
+          });
+          wis.clear();
+          entries.where((DailyEntry entry) =>
+              hasValue(entry.workItemCode)).forEach((DailyEntry entry) {
+            wis.add(entry.workItemCode);
+          });
+          if (hasValue(wis)) {
+            List<Future<RDWorkItem>> futures = [];
+            wis.forEach((String wiCode) {
+              futures.add(_rallyService.getWorkItem(wiCode));
+            });
+          }
+        }
+        _reportDate = report.date;
+      } else {
+        _reportDate ??= date;
+      }
+    });
   }
 
   void teamMemberCodeReceived(String code) {
@@ -226,9 +269,21 @@ class DailyReporter {
     String s = encoder.convert(l);
     print(s);
     // TODO
-    DailyReport report = new DailyReport(new DateTime.now(), entries);
+    DailyReport report = new DailyReport(_reportDate, entries);
     _restService.saveDaily(report);
   }
+}
+
+DailyEntry _findStatusControl(List<DailyEntry> list,
+    String workItemCode) {
+  if (!hasValue(list) || !hasValue(workItemCode)) return null;
+  DailyEntry control = null;
+  list.forEach((DailyEntry entry) {
+    if (entry.scope == Scope.PAST && entry.workItemCode == workItemCode &&
+        (control == null || control.status < entry.status))
+      control = entry;
+  });
+  return control;
 }
 
 class _AddCommand implements Command {
@@ -338,18 +393,6 @@ class _RemoveCommand implements Command {
       }
       _reporter.entries.insert(_index, _value);
     }
-  }
-
-  static DailyEntry _findStatusControl(List<DailyEntry> list,
-      String workItemCode) {
-    if (!hasValue(list) || !hasValue(workItemCode)) return null;
-    DailyEntry control = null;
-    list.forEach((DailyEntry entry) {
-      if (entry.scope == Scope.PAST && entry.workItemCode == workItemCode &&
-          (control == null || control.status < entry.status))
-        control = entry;
-    });
-    return control;
   }
 }
 

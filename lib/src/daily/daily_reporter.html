@@ -1,4 +1,4 @@
-<div class="daily-reporter" (keyup)="keyUp($event)">
+<div class="daily-reporter" (keyup)="keyUp($event)" *ngIf="reportDate != null">
     <div class="entry-form">
         <daily-form
                 [model]="onEditing"
@@ -31,6 +31,7 @@
             </div>
         </div>
         <div class="footer">
+            {{ reportDate | date:"dd-MMM-yyyy" }}
             <button type="button" (click)="save()">Save</button>
         </div>
     </div>
