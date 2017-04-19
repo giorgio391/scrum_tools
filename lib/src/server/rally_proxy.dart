@@ -30,7 +30,7 @@ class RallyDevProxy implements ScrumHttpClient {
     new HttpClientBasicCredentials(_user, _pass);
 
     _httpClient = new HttpClient();
-    _httpClient.addCredentials(_baseUri, 'Rally ALM', credentials);
+    _httpClient.addCredentials(_baseUri, r'Rally ALM', credentials);
   }
 
   void init(Server appServer) {
@@ -38,16 +38,23 @@ class RallyDevProxy implements ScrumHttpClient {
     appServer.get(new RegExp("${_pathRoot}/.*")).listen((Request request) {
       Response response = request.response;
       String path = request.path;
-      response.header('Content-Type', 'application/json; charset=UTF-8');
+      response.header(r'Content-Type', 'application/json; charset=UTF-8');
       if (path == '${_pathRoot}/status') {
-        response.send('{"status": "OK"}');
+        response.send(r'{"status": "OK"}');
       } else {
         String requestedUri = request.input.requestedUri.toString();
         String uriPart = requestedUri.substring(
             requestedUri.indexOf('${_pathRoot}/') + _pathRoot.length);
-        _cache.get(uriPart).then((String value) {
-          response.send(value);
-        });
+        if (uriPart.startsWith(r'/fresh/')) { // Do not use cache
+          uriPart = uriPart.substring(uriPart.indexOf(r'/', 1));
+          _handle(uriPart).then((String value) {
+            response.send(value);
+          });
+        } else {
+          _cache.get(uriPart).then((String value) {
+            response.send(value);
+          });
+        }
       }
     });
     _log.info('Rallydev proxy ready at [${_pathRoot}].');
@@ -79,8 +86,12 @@ class RallyDevProxy implements ScrumHttpClient {
   }
 
   @override
-  Future<String> getString(String url) {
-    return _cache.get(url);
+  Future<String> getString(String uriPart) {
+    if (uriPart.startsWith(r'/fresh/')) { // Do not use cache
+      uriPart = uriPart.substring(uriPart.indexOf(r'/', 1));
+      return _handle(uriPart);
+    }
+    return _cache.get(uriPart);
   }
 
   @override

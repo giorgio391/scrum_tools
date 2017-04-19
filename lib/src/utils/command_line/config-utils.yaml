@@ -51,7 +51,7 @@ spread_daily:
   conf-member:
     ~extends: spread_daily/conf-3
     mode: html-member
-    members: ogonzalez
+    #members: o
     mail:
       ~extends: spread_daily/conf-3/mail
       recipients: jmurcia@emergya.com

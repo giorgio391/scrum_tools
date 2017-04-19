@@ -16,7 +16,7 @@ class BasicRallyService {
 
   static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
 
-  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20today))&pagesize=200&fetch=true';
+  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20nextweek))&pagesize=200&fetch=true';
 
   static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
@@ -174,11 +174,12 @@ class BasicRallyService {
     completer.completeError(_httpClient.handleError(error));
   }
 
-  Future<List<RDWorkItem>> _queryWorkItems(String query) {
+  Future<List<RDWorkItem>> _queryWorkItems(String query, [bool fresh = false]) {
     Completer<List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
     Future<List<RDWorkItem>> defectsFuture = _queryWorkItemsByType(
-        _defect, query);
-    Future<List<RDWorkItem>> usFuture = _queryWorkItemsByType(_us, query);
+        _defect, query, fresh);
+    Future<List<RDWorkItem>> usFuture = _queryWorkItemsByType(
+        _us, query, fresh);
     Future.wait([defectsFuture, usFuture]).then((List<List<RDWorkItem>> list) {
       List<RDWorkItem> compiledList = new List<RDWorkItem>();
       list.forEach((Iterable<RDWorkItem> ite) => compiledList.addAll(ite));
@@ -190,16 +191,17 @@ class BasicRallyService {
   }
 
   Future<List<RDWorkItem>> _queryWorkItemsByType(String typeName,
-      String query) {
+      String query, [bool fresh = false]) {
     WiBuilder wiBuilder = typeName == _defect ? _defectBuilder : _usBuilder;
     Completer <List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
-    _httpClient.getString(
-        '$_pathRoot/${typeName}?query=${query}')
-        .then((String json) {
+    String url = '$_pathRoot'
+        '${fresh ? r'/fresh/': r'/'}'
+        '${typeName}?query=${query}';
+    _httpClient.getString(url).then((String json) {
       Map map = JSON.decode(json);
       List<RDWorkItem> list = [];
-      if (map['QueryResult']['TotalResultCount'] > 0) {
-        map['QueryResult']['Results'].forEach((Map<String, dynamic> wiMap) {
+      if (map[r'QueryResult'][r'TotalResultCount'] > 0) {
+        map[r'QueryResult'][r'Results'].forEach((Map<String, dynamic> wiMap) {
           RDWorkItem wi = wiBuilder(wiMap);
           list.add(wi);
         });
@@ -217,10 +219,11 @@ class BasicRallyService {
   RDWorkItem _usBuilder(Map<String, dynamic> map) =>
       new RDHierarchicalRequirement.fromMap(map);
 
-  Future<Iterable<RDWorkItem>> _queryWorkItemsSortByCode(String query) {
+  Future<Iterable<RDWorkItem>> _queryWorkItemsSortByCode(String query,
+      [bool fresh = false]) {
     Completer<Iterable<RDWorkItem>> completer = new Completer<
         Iterable<RDWorkItem>>();
-    _queryWorkItems(query).then((List<RDWorkItem> list) {
+    _queryWorkItems(query, fresh).then((List<RDWorkItem> list) {
       list.sort(FormattedIDComparator);
       completer.complete(list);
     }).catchError((error) {
@@ -229,9 +232,10 @@ class BasicRallyService {
     return completer.future;
   }
 
-  Future<List<RDWorkItem>> _queryWorkItemsSortPrioritization(String query) {
+  Future<List<RDWorkItem>> _queryWorkItemsSortPrioritization(String query,
+      [bool fresh = false]) {
     Completer<List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
-    _queryWorkItems(query).then((List<RDWorkItem> list) {
+    _queryWorkItems(query, fresh).then((List<RDWorkItem> list) {
       list.sort(new PrioritizationComparator().compare);
       completer.complete(list);
     }).catchError((error) {
@@ -404,15 +408,15 @@ class BasicRallyService {
   Future<Iterable<RDWorkItem>> getDevTeamPendingInIteration(
       String iterationName) {
     String query = _pendingByIterationNameQuery(iterationName);
-    return _queryWorkItemsSortPrioritization(query);
+    return _queryWorkItemsSortPrioritization(query, true);
   }
 
   Future<Iterable<RDWorkItem>> getMissedIteration() {
     Completer<List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
     Future<List<RDWorkItem>> defectsFuture = _queryWorkItemsByType(
-        _defect, _defectIterationMissingQuery);
+        _defect, _defectIterationMissingQuery, true);
     Future<List<RDWorkItem>> usFuture = _queryWorkItemsByType(
-        _us, _usIterationMissingQuery);
+        _us, _usIterationMissingQuery, true);
     Future.wait([defectsFuture, usFuture]).then((List<List<RDWorkItem>> list) {
       List<RDWorkItem> compiledList = new List<RDWorkItem>();
       list.forEach((Iterable<RDWorkItem> ite) => compiledList.addAll(ite));
@@ -429,25 +433,25 @@ class BasicRallyService {
   }
 
   Future<Iterable<RDWorkItem>> getByIteration(String iterationName) =>
-      _queryWorkItemsSortByCode(_byIterationNameQuery(iterationName));
+      _queryWorkItemsSortByCode(_byIterationNameQuery(iterationName), true);
 
   Future<Iterable<RDWorkItem>> getDevTeamPending() =>
-      _queryWorkItemsSortPrioritization(_devTeamPendingQuery);
+      _queryWorkItemsSortPrioritization(_devTeamPendingQuery, true);
 
   Future<Iterable<RDWorkItem>> getPRODeploymentPending() =>
-      _queryWorkItemsSortByCode(_proDeploymentPendingQuery);
+      _queryWorkItemsSortByCode(_proDeploymentPendingQuery, true);
 
   Future<Iterable<RDWorkItem>> getPREDeploymentPending() =>
-      _queryWorkItemsSortByCode(_preDeploymentPendingQuery);
+      _queryWorkItemsSortByCode(_preDeploymentPendingQuery, true);
 
   Future<Iterable<RDWorkItem>> getUATDeploymentPending() =>
-      _queryWorkItemsSortByCode(_uatDeploymentPendingQuery);
+      _queryWorkItemsSortByCode(_uatDeploymentPendingQuery, true);
 
   Future<Iterable<RDWorkItem>> getUAT2PREDeploymentPending() =>
-      _queryWorkItemsSortByCode(_uat2preDeploymentPendingQuery);
+      _queryWorkItemsSortByCode(_uat2preDeploymentPendingQuery, true);
 
   Future<Iterable<RDWorkItem>> getUAT2PRODeploymentPending() =>
-      _queryWorkItemsSortByCode(_uat2proDeploymentPendingQuery);
+      _queryWorkItemsSortByCode(_uat2proDeploymentPendingQuery, true);
 
 }
 

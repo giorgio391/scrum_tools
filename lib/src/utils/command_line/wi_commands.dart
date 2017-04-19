@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
@@ -60,10 +61,12 @@ class WorkItemsCommands extends UtilOptionCommand {
     } else if (action.startsWith(r'rtd')) {
       _checkMissedIteration(() {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
-          rallyService.getPREDeploymentPending().then((Iterable<RDWorkItem> ite) {
+          rallyService.getPREDeploymentPending().then((
+              Iterable<RDWorkItem> ite) {
             _p.writeln(r'>>>>>>>>>>> PRE >>>>>>>>>>>>>>');
             _printIterableAndClose(ite, chk);
-            rallyService.getUATDeploymentPending().then((Iterable<RDWorkItem> ite) {
+            rallyService.getUATDeploymentPending().then((
+                Iterable<RDWorkItem> ite) {
               _p.writeln(r'>>>>>>>>>>> UAT >>>>>>>>>>>>>>');
               _printIterableAndClose(ite, chk);
             });
@@ -91,6 +94,24 @@ class WorkItemsCommands extends UtilOptionCommand {
           _printIterableAndClose(ite, chk);
         });
       });
+    } else if (action.startsWith(r'list-')) {
+      Set<String> list = _resolveList(action);
+      rallyService.currentIteration.then((RDIteration currentIteration) {
+        List<RDWorkItem> workItems = [];
+        rallyService.getWorkItems(list).forEach((RDWorkItem wi) {
+          workItems.add(wi);
+        }).then((_) {
+          PrioritizationComparator comparator = new PrioritizationComparator(
+              currentIteration);
+          workItems.sort(comparator.compare);
+          Expando<int> pRank = new Expando<int>();
+          int count = 0;
+          workItems.forEach((RDWorkItem wi) => pRank[wi] = ++count);
+          workItems.sort(compareWIByFormattedID);
+          _PRankColumnHandler extra = new _PRankColumnHandler(pRank);
+          _printIterableAndClose(workItems, chk, extraCol: extra.print);
+        });
+      });
     } else {
       _p.errorln('Unsupported!');
     }
@@ -102,6 +123,20 @@ class WorkItemsCommands extends UtilOptionCommand {
     if (!iterationName.startsWith(r'Sprint '))
       iterationName = 'Sprint ${iterationName}';
     return iterationName;
+  }
+
+  Set<String> _resolveList(String string) {
+    String sList = string.substring(string.lastIndexOf(r'-') + 1)
+        .trim();
+    if (sList.startsWith(r'f:')) {
+      String fileName = sList.substring(sList.lastIndexOf(r'f:') + 2)
+          .trim();
+      File file = new File(fileName);
+      return new Set<String>.from(
+          file.readAsLinesSync().where((String s) => hasValue(s.trim())));
+    }
+
+    return new Set<String>.from(sList.split(r','));
   }
 
   void _checkMissedIteration(after()) {
@@ -125,9 +160,13 @@ class WorkItemsCommands extends UtilOptionCommand {
     });
   }
 
-  void _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk) {
+  void _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk,
+      {_ColumnPrinter extraCol}) {
     if (hasValue(ite)) {
       ite.forEach((RDWorkItem wi) {
+        if (extraCol != null) {
+          extraCol(_p, wi);
+        }
         RDPriority p = inferWIPriority(wi);
         RDSeverity s = inferSeverity(wi);
         _p.write(wi.scheduleState < RDScheduleState.IN_PROGRESS ? r'*' : r' ');
@@ -190,6 +229,23 @@ class WorkItemsCommands extends UtilOptionCommand {
         _p.writeln('           > ${formatString(issue.name, 70)}');
       });
     }
+  }
+
+}
+
+typedef void _ColumnPrinter(Printer p, RDWorkItem workItem);
+
+class _PRankColumnHandler {
+
+  Expando<int> _pRank;
+
+  _PRankColumnHandler(this._pRank);
+
+  void print(Printer p, RDWorkItem workItem) {
+    int pRank = _pRank[workItem];
+    if (pRank < 10) p.write(r' ');
+    p.write(pRank);
+    p.write(r' ');
   }
 
 }

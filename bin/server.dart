@@ -190,6 +190,7 @@ Future _main(List<String> arguments, ConfigMap cfgMap) async {
         initializer(appServer);
       }
     });
+  _log.info('Server bound to [${host}:${port}].');
   } else {
     _log.info('Nothing to do! Server stopped.');
     exit(0);
