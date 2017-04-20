@@ -22,8 +22,12 @@ class RallyDevProxy implements ScrumHttpClient {
 
   String _user, _pass, _pathRoot;
 
-  RallyDevProxy(this._user, this._pass, [this._pathRoot = '/rd']) {
-    _cache = new Cache<String, String>();
+  RallyDevProxy(this._user, this._pass,
+      {String pathRoot: r'/rd', bool cacheEvict: false}) {
+    _pathRoot = pathRoot;
+    CacheListener cacheListener = cacheEvict ? new CachedTimeoutEvict(
+        name: r'RallyDevProxyEvict') : noOpsCacheListener;
+    _cache = new Cache<String, String>(listener: cacheListener);
     _cache.retriever = _handle;
 
     HttpClientBasicCredentials credentials =

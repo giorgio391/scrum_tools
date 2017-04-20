@@ -8,9 +8,8 @@ import 'package:scrum_tools/src/rally/basic_rally_service.dart';
 class RallyService extends BasicRallyService {
 
   RallyService(ScrumHttpClient httpClient, RuntimeService runtimeService)
-      :super(httpClient, runtimeService.debugMode ? 'http://localhost:3000/rd' :
-  runtimeService.contextUri('/rd'));
+      :super(httpClient,
+      pathRoot: runtimeService.debugMode ? r'http://localhost:3000/rd' :
+      runtimeService.contextUri(r'/rd'));
 
 }
-
-

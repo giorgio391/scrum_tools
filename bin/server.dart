@@ -42,38 +42,38 @@ Future _main(List<String> arguments, ConfigMap cfgMap) async {
 
   // Parse arguments
   ArgParser argParser = new ArgParser()
-    ..addOption(webDirArg, abbr: 'w',
-        help: 'Allows to set the root of the web directory. '
-            'A value after the option must be provided. '
-            'If the value provided is "!" the current script '
-            'directory appended with '
+    ..addOption(webDirArg, abbr: r'w',
+        help: r'Allows to set the root of the web directory. '
+            r'A value after the option must be provided. '
+            r'If the value provided is "!" the current script '
+            r'directory appended with '
             '"..${Platform.pathSeparator}build${Platform.pathSeparator}web" '
-            'will be used. '
-            'If his option was ommited, no web directory would be served.'
+            r'will be used. '
+            r'If his option was ommited, no web directory would be served.'
     )..addOption(hostArg,
-        help: 'Allows to set the host address to bind the server.'
-    )..addOption(portArg, abbr: 'p',
-        help: 'Allows to set the port used by the server. '
-            'An integer positive value after the option must be provided.',
-        defaultsTo: '3000'
+        help: r'Allows to set the host address to bind the server.'
+    )..addOption(portArg, abbr: r'p',
+        help: r'Allows to set the port used by the server. '
+            r'An integer positive value after the option must be provided.',
+        defaultsTo: r'3000'
     )
-    ..addFlag(helpArg, negatable: false, abbr: 'h',
-        help: 'Display usage help.'
+    ..addFlag(helpArg, negatable: false, abbr: r'h',
+        help: r'Display usage help.'
     )
-    ..addOption(webSocketArg, abbr: 'z',
-        help: 'Allows to set up the path for web sockets. '
-            'A value after the option must be provided to define the path to '
-            'invoke web sockets (i.e. "ws" for "/ws"). '
-            'If his option was ommited, no web socket service would be started.'
+    ..addOption(webSocketArg, abbr: r'z',
+        help: r'Allows to set up the path for web sockets. '
+            r'A value after the option must be provided to define the path to '
+            r'invoke web sockets (i.e. "ws" for "/ws"). '
+            r'If his option was ommited, no web socket service would be started.'
     )
-    ..addFlag(rdProxyArg, abbr: 'r',
-        help: 'Starts the Rallydev proxy service.')
+    ..addFlag(rdProxyArg, abbr: r'r',
+        help: r'Starts the Rallydev proxy service.')
     ..addOption(rdUserArg,
-        help: 'Username to be used to connect to Rallydev.')..addOption(
+        help: r'Username to be used to connect to Rallydev.')..addOption(
         rdPassArg,
-        help: 'Password of the user to be used to connect to Rallydev.')
-    ..addFlag(restArg, abbr: 'f',
-        help: 'Starts the restful service.')
+        help: r'Password of the user to be used to connect to Rallydev.')
+    ..addFlag(restArg, abbr: r'f',
+        help: r'Starts the restful service.')
   ;
   ArgResults argResults = () {
     try {
@@ -154,7 +154,7 @@ Future _main(List<String> arguments, ConfigMap cfgMap) async {
       }
       return argResults[rdPassArg];
     }();
-    RallyDevProxy rdProxy = new RallyDevProxy(user, pass);
+    RallyDevProxy rdProxy = new RallyDevProxy(user, pass, cacheEvict: true);
     initializers.add(rdProxy.init);
   }
 

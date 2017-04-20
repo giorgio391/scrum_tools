@@ -53,16 +53,27 @@ class BasicRallyService {
   RDIteration _currentIteration;
   ScrumHttpClient _httpClient;
 
-  BasicRallyService(this._httpClient, [this._pathRoot = '']) {
-    _iterationsCache = new Cache<int, RDIteration>.ready(_iterationRetriever);
-    _usersCache = new Cache<String, RDUser>.ready(_userRetriever);
-    _workItemCodesCache = new Cache<String, int>.ready(getWorkItemID);
-    _defectsCache = new Cache<int, RDDefect>.ready(_defectRetriever);
+  BasicRallyService(this._httpClient,
+      {String pathRoot: r'', bool evictCache: false}) {
+    _pathRoot = pathRoot;
+
+    Function evictFactory = evictCache ?
+        () => new CachedTimeoutEvict() : () => noOpsCacheListener;
+
+    _iterationsCache = new Cache<int, RDIteration>.ready(
+        _iterationRetriever, listener: evictFactory());
+    _usersCache = new Cache<String, RDUser>.ready(
+        _userRetriever, listener: evictFactory());
+    _workItemCodesCache = new Cache<String, int>.ready(
+        getWorkItemID, listener: evictFactory());
+    _defectsCache = new Cache<int, RDDefect>.ready(
+        _defectRetriever, listener: evictFactory());
     _hierarchicalRequirementCache =
     new Cache<int, RDHierarchicalRequirement>.ready(
-        _hierarchicalRequirementRetriever);
+        _hierarchicalRequirementRetriever, listener: evictFactory());
     _portfolioItemCache =
-    new Cache<String, RDPortfolioItem>.ready(_portfolioItemRetriever);
+    new Cache<String, RDPortfolioItem>.ready(
+        _portfolioItemRetriever, listener: evictFactory());
   }
 
   String _byIterationNameQuery(String iterationName) =>
@@ -195,7 +206,7 @@ class BasicRallyService {
     WiBuilder wiBuilder = typeName == _defect ? _defectBuilder : _usBuilder;
     Completer <List<RDWorkItem>> completer = new Completer<List<RDWorkItem>>();
     String url = '$_pathRoot'
-        '${fresh ? r'/fresh/': r'/'}'
+        '${fresh ? r'/fresh/' : r'/'}'
         '${typeName}?query=${query}';
     _httpClient.getString(url).then((String json) {
       Map map = JSON.decode(json);

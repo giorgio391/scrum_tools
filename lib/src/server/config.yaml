@@ -4,6 +4,7 @@ log:
   custom:
     - rest_server: FINEST
     #- rd-proxy: FINER
+    #- cache-cached-timeout: FINEST
 
 mailer:
   host: posteio.emergya.com
