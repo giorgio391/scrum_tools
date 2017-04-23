@@ -335,8 +335,11 @@ class WorkItemValidator {
 
   static bool assignedToClient(RDWorkItem workItem) =>
       workItem.owner != null &&
-          (workItem.owner == productOwner || workItem.project ==
-              userStoryValidator || workItem.project == defectValidator);
+          (workItem.owner == productOwner || workItem.owner ==
+              userStoryValidator || workItem.owner == defectValidator);
+
+  static bool assignedQADeployer(RDWorkItem workItem) =>
+      workItem.owner != null && workItem.owner == qaDeployer;
 
   static bool taggedAsDeployed(RDWorkItem workItem) {
     bool tagUAT = false;

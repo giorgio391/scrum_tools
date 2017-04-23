@@ -112,9 +112,9 @@ class Printer {
   Printer section(String title, [String line = r'-------------------------']) {
     if (hasValue(title)) {
       String lineString = '+${formatString(line, title.length+2, line)}+';
-      print(lineString);
-      print('| ${title} |');
-      print(lineString);
+      writeln(lineString);
+      writeln('| ${title} |');
+      writeln(lineString);
     }
     return this;
   }
@@ -122,15 +122,103 @@ class Printer {
   Printer title(String title, [String line = r'===========================']) {
     if (hasValue(title)) {
       String lineString = '${formatString(line, title.length, line)}';
-      print(lineString);
-      print(title);
-      print(lineString);
+      writeln(lineString);
+      writeln(title);
+      writeln(lineString);
     }
     return this;
   }
 
   PrinterColumn column(String title, int length) {
     return new PrinterColumn(this, title, length);
+  }
+
+  Printer bold([String text]) {
+    return style(r'[1m', text);
+  }
+
+  Printer black([String text]) {
+    return style(r'[30m', text);
+  }
+
+  Printer red([String text]) {
+    return style(r'[31m', text);
+  }
+
+  Printer green([String text]) {
+    return style(r'[32m', text);
+  }
+
+  Printer blue([String text]) {
+    return style(r'[34m', text);
+  }
+
+  Printer cyan([String text]) {
+    return style(r'[36m', text);
+  }
+
+  Printer lgreen([String text]) {
+    return style(r'[92m', text);
+  }
+
+  Printer yellow([String text]) {
+    return style(r'[93m', text);
+  }
+
+  Printer grey([String text]) {
+    return style(r'[90m', text);
+  }
+
+  Printer backRed([String text]) {
+    return style(r'[41m', text);
+  }
+
+  Printer backGreen([String text]) {
+    return style(r'[42m', text);
+  }
+
+  Printer backBlue([String text]) {
+    return style(r'[44m', text);
+  }
+
+  Printer backGrey([String text]) {
+    return style(r'[100m', text);
+  }
+
+  Printer backLgreen([String text]) {
+    return style(r'[102m', text);
+  }
+
+  Printer backLblue([String text]) {
+    return style(r'[104m', text);
+  }
+
+  Printer backWhite([String text]) {
+    return style(r'[107m', text);
+  }
+
+  Printer blink([String text]) {
+    return style(r'[5m', text);
+  }
+
+  Printer inverted([String text]) {
+    return style(r'[7m', text);
+  }
+
+  Printer style(String code, [String text]) {
+    stdout.writeCharCode(27);
+    stdout.write(code);
+    if (text != null) {
+      write(text);
+      reset();
+    }
+    return this;
+  }
+
+  Printer reset() {
+    stdout.writeCharCode(27);
+    stdout.write(r'[0m');
+    return this;
   }
 }
 

@@ -63,11 +63,15 @@ class WorkItemsCommands extends UtilOptionCommand {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
           rallyService.getPREDeploymentPending().then((
               Iterable<RDWorkItem> ite) {
-            _p.writeln(r'>>>>>>>>>>> PRE >>>>>>>>>>>>>>');
+            _p.backWhite().bold()
+                .red(r'>>>>>>>>>>> PRE >>>>>>>>>>>>>>')
+                .writeln();
             _printIterableAndClose(ite, chk);
             rallyService.getUATDeploymentPending().then((
                 Iterable<RDWorkItem> ite) {
-              _p.writeln(r'>>>>>>>>>>> UAT >>>>>>>>>>>>>>');
+              _p.backWhite().bold()
+                  .blue(r'>>>>>>>>>>> UAT >>>>>>>>>>>>>>')
+                  .writeln();
               _printIterableAndClose(ite, chk);
             });
           });
@@ -76,11 +80,15 @@ class WorkItemsCommands extends UtilOptionCommand {
     } else if (action.startsWith(r'rtp')) {
       _checkMissedIteration(() {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
-          _p.writeln(r'>>>>>>> LIVE & MASTER >>>>>>>>>');
+          _p.backWhite().bold()
+              .red(r'>>>>>>> LIVE & MASTER >>>>>>>>>')
+              .writeln();
           _printIterableAndClose(
               ite.where((RDWorkItem workItem) =>
               workItem.ready && workItem.expedite), chk);
-          _p.writeln(r'>>>>>>>>>> MASTER >>>>>>>>>>>>>');
+          _p.backWhite().bold()
+              .blue(r'>>>>>>>>>> MASTER >>>>>>>>>>>>>')
+              .writeln();
           _printIterableAndClose(
               ite.where((RDWorkItem workItem) =>
               workItem.ready && !workItem.expedite), chk);
@@ -142,9 +150,10 @@ class WorkItemsCommands extends UtilOptionCommand {
   void _checkMissedIteration(after()) {
     rallyService.getMissedIteration().then((Iterable<RDWorkItem> ite) {
       if (hasValue(ite)) {
-        _p.writeln(
+        _p.blink().red(
             '**** TOP PRIORITIZATION WITHOUT ITERATION ** [${ite
                 .length}]  ****');
+        _p.writeln();
         _p.writeln(formatString(r'***************', 82));
         ite.forEach((RDWorkItem wi) {
           _p.write(r'* ');
@@ -154,7 +163,8 @@ class WorkItemsCommands extends UtilOptionCommand {
         });
         _p.writeln(formatString(r'***************', 82));
       } else {
-        _p.writeln(r'No top prioritization w/o iteration found. OK!');
+        _p.grey(r'No top prioritization w/o iteration found. OK!');
+        _p.writeln();
       }
       if (after != null) after();
     });
@@ -167,40 +177,85 @@ class WorkItemsCommands extends UtilOptionCommand {
         if (extraCol != null) {
           extraCol(_p, wi);
         }
+        bool assignedToClient = WorkItemValidator.assignedToClient(wi);
         RDPriority p = inferWIPriority(wi);
         RDSeverity s = inferSeverity(wi);
+        if ((assignedToClient && !wi.blocked) || wi.owner == null) _p.blink()
+            .bold();
         _p.write(wi.scheduleState < RDScheduleState.IN_PROGRESS ? r'*' : r' ');
         _p.write(wi.scheduleState < RDScheduleState.COMPLETED ? r'*' : r' ');
+        _p.reset();
         _p.write(wi.expedite ? r'+' : r' ');
-        _p.write(wi.blocked ? r'B' : r' ');
+        if (wi.blocked) {
+          _p.bold().red().inverted(r'B');
+        } else {
+          _p.write(r' ');
+        }
         _p.write(r' ');
         _p.write(formatString(wi.formattedID, 8));
         _p.write(formatString(wi.name, 70));
-        _p.write(r' > ');
-        _p.write(
-            formatString(wi.owner != null ? wi.owner.displayName : r' ', 18));
-        _p.write(wi.ready ? r'^' : r' ');
+        _p.grey(r' > ');
+        if (wi.owner != null) {
+          if (assignedToClient) {
+            _p.yellow();
+          } else if (WorkItemValidator.assignedQADeployer(wi)) {
+            _p.cyan();
+          } else {
+            _p.blue();
+          }
+          _p.write(formatString(wi.owner.displayName, 18));
+          _p.reset();
+        } else {
+          _p.write(formatString(r' ', 18));
+        }
+
+        if (wi.ready) {
+          _p.green().bold().inverted(r'^');
+        } else {
+          _p.write(r' ');
+        }
+        _p.bold().inverted();
+        if (wi.scheduleState == RDScheduleState.UNDEFINED) {
+          _p.grey();
+        } else if (wi.scheduleState == RDScheduleState.COMPLETED) {
+          _p.green();
+        } else if (wi.scheduleState == RDScheduleState.ACCEPTED) {
+          //_p.grey();
+        } else if (wi.scheduleState == RDScheduleState.ACCEPTED_BY_OWNER) {
+          _p.cyan();
+        } else {
+          _p.blue();
+        }
         _p.write(wi.scheduleState.abbr);
+        _p.reset();
         _p.write(r' ');
         _p.write(formatString(
             wi.iteration == null ? r' ' : 'S${wi.iteration.name.substring(
                 wi.iteration.name.length - 3).trim()}', 5));
+        if (hasMaxPrioritization(wi)) _p.blink().bold().red();
         _p.write(formatString(p == null ? r' ' : p.name.split(r' ')[0], 8));
+        _p.reset();
         _p.write(formatString(s == null ? r' ' : s.name.split(r' ')[0], 8));
-        _p.write(r' > ');
+        _p.grey(r' > ');
         //_p.writeln(formatDate(wi.lastUpdateDate));
+        if (wi.planEstimate != null && wi.planEstimate > 5.0)
+          _p.bold();
+        else if (wi.planEstimate != null && wi.planEstimate < 2.0)
+          _p.cyan();
+        else if (wi.planEstimate == null && !wi.blocked) _p.bold().red();
         _p.write(formatDouble(wi.planEstimate));
+        _p.reset();
 
         if (hasValue(wi.tags)) {
           _p.write(r' ');
           new List.from(wi.tags)
             ..sort()
             ..forEach((String tag) {
-              _p.write('·${tag}');
+              _p.write(r'·');
+              _p.blue().inverted(tag);
             });
         }
         _p.writeln();
-
 
         if (chk) {
           _printValidation(wi);
@@ -218,15 +273,18 @@ class WorkItemsCommands extends UtilOptionCommand {
     if (report.hasIssues) {
       report.issues.where((Issue issue) =>
       issue.issueLevel == IssueLevel.IMPORTANT).forEach((Issue issue) {
-        _p.writeln('         >>> ${formatString(issue.name, 70)}');
+        _p.red('         >>> ${formatString(issue.name, 70)}');
+        _p.writeln();
       });
       report.issues.where((Issue issue) => issue.issueLevel == IssueLevel.WARN)
           .forEach((Issue issue) {
-        _p.writeln('          >> ${formatString(issue.name, 70)}');
+        _p.yellow('          >> ${formatString(issue.name, 70)}');
+        _p.writeln();
       });
       report.issues.where((Issue issue) => issue.issueLevel == IssueLevel.INFO)
           .forEach((Issue issue) {
-        _p.writeln('           > ${formatString(issue.name, 70)}');
+        _p.cyan('           > ${formatString(issue.name, 70)}');
+        _p.writeln();
       });
     }
   }

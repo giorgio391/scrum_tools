@@ -562,6 +562,11 @@ class PrioritizationComparator {
 
 }
 
+bool hasMaxPrioritization(RDWorkItem workItem) =>
+    (workItem is RDDefect && workItem.priority == RDPriority.MAX_PRIORITY) ||
+        (workItem is RDHierarchicalRequirement &&
+            workItem.risk == RDRisk.MAX_RISK);
+
 RDPriority inferWIPriority(RDWorkItem workItem) {
   if (workItem is RDDefect) {
     return workItem.priority;
