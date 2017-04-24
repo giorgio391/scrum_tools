@@ -155,7 +155,7 @@ class BasicRallyService {
     Completer<RDHierarchicalRequirement> completer = new Completer<
         RDHierarchicalRequirement>();
     _entityMapRetriever(_us, id).then((Map<String, dynamic> map) {
-      Map<String, dynamic> sub = map['HierarchicalRequirement'];
+      Map<String, dynamic> sub = map[r'HierarchicalRequirement'];
       RDHierarchicalRequirement value = new RDHierarchicalRequirement.fromMap(
           sub);
       completer.complete(value);
@@ -167,10 +167,10 @@ class BasicRallyService {
 
   Future<RDPortfolioItem> _portfolioItemRetriever(String key) {
     Completer<RDPortfolioItem> completer = new Completer<RDPortfolioItem>();
-    _idRetrieverByKey('portfolioitem/feature', key).then((int id) {
-      _entityMapRetriever('portfolioitem/feature', id).then((
+    _idRetrieverByKey(r'portfolioitem/feature', key).then((int id) {
+      _entityMapRetriever(r'portfolioitem/feature', id).then((
           Map<String, dynamic> map) {
-        RDPortfolioItem value = new RDPortfolioItem.fromMap(map['Feature']);
+        RDPortfolioItem value = new RDPortfolioItem.fromMap(map[r'Feature']);
         completer.complete(value);
       }).catchError((error) {
         _handleError(completer, error);
@@ -261,8 +261,8 @@ class BasicRallyService {
 
   Future<int> getWorkItemID(String key) {
     Completer<int> completer = new Completer<int>();
-    if (key != null && (key.startsWith('US') || key.startsWith('DE'))) {
-      _idRetrieverByKey(key.startsWith('US') ? _us : _defect, key).
+    if (key != null && (key.startsWith(r'US') || key.startsWith(r'DE'))) {
+      _idRetrieverByKey(key.startsWith(r'US') ? _us : _defect, key).
       then((int id) {
         completer.complete(id);
       }).catchError((error) {
@@ -270,7 +270,7 @@ class BasicRallyService {
       });
     } else {
       completer.completeError('The key [${key == null
-          ? 'null'
+          ? r'null'
           : key}] is not valid for a work item.');
     }
     return completer.future;
@@ -308,7 +308,7 @@ class BasicRallyService {
   Future clearWorkItemCache(String key) {
     Completer completer = new Completer();
     getWorkItemID(key).then((int id) {
-      if (key.startsWith('DE'))
+      if (key.startsWith(r'DE'))
         _defectsCache.clearItem(id);
       else
         _hierarchicalRequirementCache.clearItem(id);
@@ -326,7 +326,7 @@ class BasicRallyService {
   Future<RDIteration> get currentIteration {
     if (_currentIteration == null) {
       Completer<RDIteration> completer = new Completer<RDIteration>();
-      _genericIDRetriever('iteration',
+      _genericIDRetriever(r'iteration',
           '(Project.ObjectID = ${_projectId}) AND ((StartDate <= today) AND (EndDate >= today))')
           .then((int id) {
         getIteration(id).then((RDIteration iteration) {
@@ -349,7 +349,7 @@ class BasicRallyService {
 
   Future<RDWorkItem> getWorkItem(String key) {
     if (key == null) return (new Completer()
-      ..completeError("Null key provided!")).future;
+      ..completeError(r"Null key provided!")).future;
     if (_defectRegExp.hasMatch(key)) {
       return getDefect(key);
     }
@@ -410,6 +410,61 @@ class BasicRallyService {
 
   Future<RDHierarchicalRequirement> getHierarchicalRequirementById(int id) {
     return _hierarchicalRequirementCache.get(id);
+  }
+
+  Future<List<RDHierarchicalRequirement>> getPredecessors(
+      RDHierarchicalRequirement us) {
+    if (us == null || us.predecessorsCount < 1) {
+      return new Future.value(null);
+    }
+
+    Completer<List<RDHierarchicalRequirement>> completer = new Completer<
+        List<RDHierarchicalRequirement>>();
+    _httpClient.getString(
+        '${_pathRoot}/HierarchicalRequirement/${us
+            .objectID}/Predecessors?fetch=true').then((String json) {
+      Map<String, dynamic> map = JSON.decode(json);
+      if (map[r'QueryResult'][r'TotalResultCount'] > 0) {
+        List<Map<String, dynamic>> list = map[r'QueryResult'][r'Results'];
+        List<RDHierarchicalRequirement> resultList = [];
+        list.forEach((Map<String, dynamic> map) {
+          RDHierarchicalRequirement pUS = new RDHierarchicalRequirement.fromMap(
+              map);
+          resultList.add(pUS);
+        });
+        completer.complete(resultList);
+      } else {
+        completer.complete(null);
+      }
+
+    }).catchError((error) {
+      _handleError(completer, error);
+    });
+    return completer.future;
+  }
+
+  Future<List<RDRevision>> getRevisions(RDWorkItem wi) {
+    if (wi == null) {
+      return null;
+    }
+    Completer<List<RDRevision>> completer = new Completer<List<RDRevision>>();
+    _httpClient.getString(
+        '${_pathRoot}/RevisionHistory/${wi.revisionHistoryID}/Revisions').then((
+        String json) {
+      List<Map<String, dynamic>> list = JSON.decode(json);
+      List<RDRevision> resultList = [];
+      list.forEach((Map<String, dynamic> map) {
+        RDRevision revision = new RDRevision.fromMap(map);
+        resultList.add(revision);
+      });
+      resultList.sort((RDRevision r1, RDRevision r2) {
+        return r1.revisionNumber.compareTo(r2.revisionNumber);
+      });
+      completer.complete(resultList);
+    }).catchError((error) {
+      _handleError(completer, error);
+    });
+    return completer.future;
   }
 
   Future<RDPortfolioItem> getPortfolioItem(String key) {

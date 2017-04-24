@@ -103,16 +103,16 @@ class WorkItemValidator {
     1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 20.0];
 
   static final Report _noWorkItemReport = new Report(
-      [new Issue(IssueLevel.INFO, r'NO-WI', "No workitem provided.")]);
+      [new Issue(IssueLevel.INFO, r'NO-WI', r"No workitem provided.")]);
 
   static final RDUser _productOwner = new RDUser.DTO(
-      55503983146, "David Pinczes");
+      55503983146, r"David Pinczes");
   static final RDUser _userStoryValidator = _productOwner;
   static final RDUser _defectValidator = new RDUser.DTO(
-      58761211860, "Lacramioara-Iulia");
+      58761211860, r"Lacramioara-Iulia");
   static final RDUser _qaDeployer = new RDUser.DTO(
-      55504055635, "QA / Deployer");
-  static final RDProject _project = new RDProject.DTO(55308115013, "Gordon");
+      55504055635, r"QA / Deployer");
+  static final RDProject _project = new RDProject.DTO(55308115013, r"Gordon");
 
   static RDUser get productOwner => _productOwner;
 
@@ -125,6 +125,8 @@ class WorkItemValidator {
   static RDProject get project => _project;
 
   BasicRallyService _rallyService;
+
+  PrioritizationComparator _prioritizationComparator;
 
   WorkItemValidator(this._rallyService);
 
@@ -153,8 +155,14 @@ class WorkItemValidator {
       _checkEstimation(issues, workItem);
       _checkOwner(issues, workItem);
       Completer<Report> completer = new Completer<Report>();
-      _checkScheduleAsync(issues, workItem).then((value) {
-        completer.complete(new Report(issues));
+      _checkScheduleAsync(issues, workItem).then((_) {
+        if (workItem is RDHierarchicalRequirement && workItem.predecessorsCount > 0) {
+          _checkPredecessors(issues, workItem).then((_) {
+            completer.complete(new Report(issues));
+          });
+        } else {
+          completer.complete(new Report(issues));
+        }
       }).catchError((error) {
         completer.completeError(error);
       });
@@ -260,49 +268,50 @@ class WorkItemValidator {
     if (workItem.blocked && (workItem.blockedReason == null ||
         workItem.blockedReason.trim() == 0)) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'MISSING-BLOCKED-REASON',
-          "Blocked while the blocked reason is empty."));
+          r"Blocked while the blocked reason is empty."));
     }
 
     if (workItem.scheduleState == RDScheduleState.IN_PROGRESS &&
         !workItem.blocked && assignedToClient(workItem)) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'PREMATURE-ASSIGMENT',
-          "Assigned to client while in progress."));
+          r"Assigned to client while in progress."));
     }
     if (workItem.blocked && !assignedToClient(workItem)) {
       issues.add(new Issue(IssueLevel.WARN, r'UNEXPECTED-BLOCK',
-          "Blocked while assigned to the dev team."));
+          r"Blocked while assigned to the dev team."));
     }
 
     if (workItem.scheduleState == RDScheduleState.UNDEFINED &&
-        workItem.owner != null) {
+        workItem.owner != null && !workItem.blocked) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'UNEXPECTED-OWNER',
           "Has owner [${workItem.owner
               .displayName}] while in schedule state [${workItem
               .scheduleState.abbr}]."));
     }
     if (workItem.scheduleState == RDScheduleState.DEFINED &&
-        workItem.iteration != null && assignedToClient(workItem)) {
+        workItem.iteration != null && assignedToClient(workItem) &&
+        !workItem.blocked) {
       issues.add(
           new Issue(IssueLevel.IMPORTANT, r'UNEXPECTED-CLIENT-OWNER-DEFINED',
-              "Assigned to client while ready to progress (iteration and schedule state)."));
+              r"Assigned to client while ready to progress (iteration and schedule state)."));
     }
     if ((workItem.scheduleState < RDScheduleState.DEFINED ||
         workItem.iteration == null) && !assignedToClient(workItem)) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'UNEXPECTED-OWNER-UNDEFINED',
-          "Assigned to dev team while not ready to progress (iteration and schedule state)."));
+          r"Assigned to dev team while not ready to progress (iteration and schedule state)."));
     }
 
     if (workItem is RDDefect &&
         workItem.scheduleState == RDScheduleState.ACCEPTED &&
         taggedAsDeployed(workItem) && workItem.owner != defectValidator) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'DEFECT-VALIDATOR-EXPECTED',
-          "Defect not correctly assigned while ready for validation."));
+          r"Defect not correctly assigned while ready for validation."));
     }
     if (workItem is RDHierarchicalRequirement &&
         workItem.scheduleState == RDScheduleState.ACCEPTED &&
         taggedAsDeployed(workItem) && workItem.owner != userStoryValidator) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'US-VALIDATOR-EXPECTED',
-          "User strory not correctly assigned while ready for validation."));
+          r"User strory not correctly assigned while ready for validation."));
     }
   }
 
@@ -315,13 +324,14 @@ class WorkItemValidator {
               .name}] is not the current one [${currentIteration.name}]."));
     }
     if (workItem.iteration != null && workItem.iteration == currentIteration &&
-        workItem.planEstimate == null) {
+        workItem.planEstimate == null && !workItem.blocked) {
       issues.add(
           new Issue(
               IssueLevel.IMPORTANT, r'CURRENT-ITERATION-WITHOUT-ESTIMATION',
               "Workitem scheduled for current iteration [${workItem.iteration
                   .name}] while not estimated yet."));
-    } else if (workItem.iteration != null && workItem.planEstimate == null) {
+    } else if (workItem.iteration != null && workItem.planEstimate == null &&
+        !workItem.blocked) {
       issues.add(new Issue(IssueLevel.WARN, r'SCHEDULED-WITHOUT-ESTIMATION',
           "Workitem scheduled for [${workItem.iteration
               .name}] while not estimated yet."));
@@ -331,6 +341,39 @@ class WorkItemValidator {
   Future _checkScheduleAsync(List<Issue> issues, RDWorkItem workItem) async {
     RDIteration currentIteration = await _rallyService.currentIteration;
     _checkSchedule(issues, workItem, currentIteration);
+  }
+
+  Future _checkPredecessors(List<Issue> issues, RDHierarchicalRequirement us) {
+    if (us.predecessorsCount < 1) {
+      return new Future.value(null);
+    }
+    Completer completer = new Completer();
+    if (_prioritizationComparator == null) {
+      _rallyService.currentIteration.then((RDIteration currentIte) {
+        _prioritizationComparator = new PrioritizationComparator(currentIte);
+        _checkPredecessors(issues, us).then((_) {
+          completer.complete(_);
+        });
+      });
+    } else {
+      _rallyService.getPredecessors(us).then((
+          List<RDHierarchicalRequirement> list) {
+        if (list != null) {
+          list.forEach((RDHierarchicalRequirement pred) {
+            if (pred.scheduleState < RDScheduleState.ACCEPTED) {
+              if (_prioritizationComparator.compare(us, pred) < 0) {
+                Issue issue = new Issue(IssueLevel.IMPORTANT, r'PREDECESSOR',
+                    'Has a predecessor with a lower prioritization [${pred
+                        .formattedID}].');
+                issues.add(issue);
+              }
+            }
+          });
+          completer.complete(list);
+        }
+      });
+    }
+    return completer.future;
   }
 
   static bool assignedToClient(RDWorkItem workItem) =>

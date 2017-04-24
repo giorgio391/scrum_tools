@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
@@ -170,10 +171,10 @@ class WorkItemsCommands extends UtilOptionCommand {
     });
   }
 
-  void _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk,
-      {_ColumnPrinter extraCol}) {
+  Future _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk,
+      {_ColumnPrinter extraCol}) async {
     if (hasValue(ite)) {
-      ite.forEach((RDWorkItem wi) {
+      for (RDWorkItem wi in ite) {
         if (extraCol != null) {
           extraCol(_p, wi);
         }
@@ -192,7 +193,11 @@ class WorkItemsCommands extends UtilOptionCommand {
           _p.write(r' ');
         }
         _p.write(r' ');
+        if (wi is RDHierarchicalRequirement && wi.predecessorsCount > 0) {
+          _p.bold();
+        }
         _p.write(formatString(wi.formattedID, 8));
+        _p.reset();
         _p.write(formatString(wi.name, 70));
         _p.grey(r' > ');
         if (wi.owner != null) {
@@ -210,7 +215,7 @@ class WorkItemsCommands extends UtilOptionCommand {
         }
 
         if (wi.ready) {
-          _p.green().bold().inverted(r'^');
+          _p.green().bold().inverted(r'R');
         } else {
           _p.write(r' ');
         }
@@ -258,9 +263,9 @@ class WorkItemsCommands extends UtilOptionCommand {
         _p.writeln();
 
         if (chk) {
-          _printValidation(wi);
+          await _printValidation(wi);
         }
-      });
+      }
       _p.writeln('Count: ${ite.length}');
     } else {
       _p.writeln(r'No work item available!');
@@ -268,8 +273,8 @@ class WorkItemsCommands extends UtilOptionCommand {
     rallyService.close();
   }
 
-  void _printValidation(RDWorkItem workItem) {
-    Report report = WorkItemValidator.validateWI(workItem);
+  Future _printValidation(RDWorkItem workItem) async {
+    Report report = await workItemValidator.validate(workItem);
     if (report.hasIssues) {
       report.issues.where((Issue issue) =>
       issue.issueLevel == IssueLevel.IMPORTANT).forEach((Issue issue) {
@@ -288,7 +293,6 @@ class WorkItemsCommands extends UtilOptionCommand {
       });
     }
   }
-
 }
 
 typedef void _ColumnPrinter(Printer p, RDWorkItem workItem);

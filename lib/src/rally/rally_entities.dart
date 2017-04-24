@@ -274,7 +274,7 @@ abstract class RDEntity {
   RDEntity._internal(this._objectID);
 
   RDEntity._internalFromMap(Map<String, dynamic> map) {
-    _objectID = map['ObjectID'];
+    _objectID = map[r'ObjectID'];
   }
 
   operator ==(RDEntity entity) =>
@@ -285,6 +285,29 @@ abstract class RDEntity {
   String toString() {
     return "${this.runtimeType} - $ID";
   }
+}
+
+class RDRevision extends RDEntity {
+
+  DateTime _creationDate;
+  String _description;
+  int _revisionNumber;
+  RDUser _user;
+
+  DateTime get creationDate => _creationDate;
+  String get description => _description;
+  int get revisionNumber => _revisionNumber;
+  RDUser get user => _user;
+
+  RDRevision(int id) : super._internal(id);
+  RDRevision.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
+    _creationDate = _parseDate(map[r'CreationDate']);
+    _description = map[r'Description'];
+    _revisionNumber = int.parse(map[r'RevisionNumber']);
+    _user = new RDUser.DTO(
+        _idFromUrl(map[r'User'][r'_ref']), map[r'User'][r'_refObjectName']);
+  }
+
 }
 
 class RDIteration extends RDEntity implements Comparable<RDIteration> {
@@ -312,14 +335,14 @@ class RDIteration extends RDEntity implements Comparable<RDIteration> {
   RDIteration._internal(int id, this._name) : super._internal(id);
 
   RDIteration.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
-    _name = map['Name'];
-    _state = map['State'];
-    _creationDate = _parseDate(map['CreationDate']);
-    _startDate = _parseDate(map['StartDate']);
-    _endDate = _parseDate(map['EndDate']);
-    _taskEstimateTotal = map['TaskEstimateTotal'];
-    _planEstimate = map['PlanEstimate'];
-    _plannedVelocity = map['PlannedVelocity'];
+    _name = map[r'Name'];
+    _state = map[r'State'];
+    _creationDate = _parseDate(map[r'CreationDate']);
+    _startDate = _parseDate(map[r'StartDate']);
+    _endDate = _parseDate(map[r'EndDate']);
+    _taskEstimateTotal = map[r'TaskEstimateTotal'];
+    _planEstimate = map[r'PlanEstimate'];
+    _plannedVelocity = map[r'PlannedVelocity'];
   }
 
   operator >(RDIteration other) {
@@ -381,9 +404,9 @@ class RDUser extends RDEntity {
   RDUser.DTO(int id, this._displayName) : super._internal(id);
 
   RDUser.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
-    _userName = map['UserName'];
-    _displayName = map['DisplayName'];
-    _emailAddress = map['EmailAddress'];
+    _userName = map[r'UserName'];
+    _displayName = map[r'DisplayName'];
+    _emailAddress = map[r'EmailAddress'];
   }
 
   @override
@@ -395,7 +418,7 @@ class RDUser extends RDEntity {
 /// Base class for user stories and defect entities.abstract
 abstract class RDWorkItem extends RDEntity {
 
-  String _formattedID, _name, _blockedReason;
+  String _formattedID, _name, _blockedReason, _notes;
   bool _ready, _blocked;
   RDUser _owner;
   RDProject _project;
@@ -406,6 +429,7 @@ abstract class RDWorkItem extends RDEntity {
   RDScheduleState _scheduleState;
   String _rank;
   bool _isDeployed;
+  int _revisionHistoryID;
 
   String get name => _name;
 
@@ -441,47 +465,53 @@ abstract class RDWorkItem extends RDEntity {
 
   bool get isDeployed => _isDeployed;
 
+  int get revisionHistoryID => _revisionHistoryID;
+
+  String get notes => _notes;
+
   RDWorkItem._internalFromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
-    _formattedID = map['FormattedID'];
-    _name = map['Name'];
-    _blocked = map['Blocked'];
-    _blockedReason = map['BlockedReason'];
-    _scheduleState = RDScheduleState.parse(map['ScheduleState']);
-    _ready = map['Ready'];
-    _creationDate = DateTime.parse(map['CreationDate']);
-    _lastUpdateDate = DateTime.parse(map['LastUpdateDate']);
-    _rank = map['DragAndDropRank'];
-    List myTags = map['Tags']['_tagsNameArray'];
+    _formattedID = map[r'FormattedID'];
+    _name = map[r'Name'];
+    _blocked = map[r'Blocked'];
+    _blockedReason = map[r'BlockedReason'];
+    _scheduleState = RDScheduleState.parse(map[r'ScheduleState']);
+    _ready = map[r'Ready'];
+    _creationDate = DateTime.parse(map[r'CreationDate']);
+    _lastUpdateDate = DateTime.parse(map[r'LastUpdateDate']);
+    _rank = map[r'DragAndDropRank'];
+    _revisionHistoryID = _idFromUrl(map[r'RevisionHistory'][r'_ref']);
+    _notes = map[r'Notes'];
+    List myTags = map[r'Tags'][r'_tagsNameArray'];
     if (myTags != null && myTags.length > 0) {
       _tags = new SplayTreeSet<String>((String v1, String v2) {
-        if ((v1 != v2) && (v1 == 'UAT' || v2 == 'UAT')) {
-          if (v1 == 'UAT') return -1000;
-          if (v2 == 'UAT') return 1000;
+        if ((v1 != v2) && (v1 == r'UAT' || v2 == r'UAT')) {
+          if (v1 == r'UAT') return -1000;
+          if (v2 == r'UAT') return 1000;
         }
         return v1.compareTo(v2);
       });
       myTags.forEach((value) {
-        String s = value['Name'];
-        if (s == 'UAT' || s == 'PRE' || s == 'PRO') _isDeployed = true;
+        String s = value[r'Name'];
+        if (s == r'UAT' || s == r'PRE' || s == r'PRO') _isDeployed = true;
         _tags.add(s);
       });
     }
-    if (map['Owner'] != null) {
+    if (map[r'Owner'] != null) {
       _owner = new RDUser.DTO(
-          _idFromUrl(map['Owner']['_ref']), map['Owner']['_refObjectName']);
+          _idFromUrl(map[r'Owner'][r'_ref']), map[r'Owner'][r'_refObjectName']);
     }
-    if (map['Project'] != null) {
+    if (map[r'Project'] != null) {
       _project = new RDProject.DTO(
-          _idFromUrl(map['Project']['_ref']), map['Project']['_refObjectName']);
+          _idFromUrl(map[r'Project'][r'_ref']), map[r'Project'][r'_refObjectName']);
     }
-    if (map['Iteration'] != null) {
+    if (map[r'Iteration'] != null) {
       _iteration = new RDIteration._internal(
-          _idFromUrl(map['Iteration']['_ref']),
-          map['Iteration']['_refObjectName']);
+          _idFromUrl(map[r'Iteration']['_ref']),
+          map[r'Iteration'][r'_refObjectName']);
     }
-    _planEstimate = map['PlanEstimate'];
-    _expedite = map['Expedite'];
+    _planEstimate = map[r'PlanEstimate'];
+    _expedite = map[r'Expedite'];
   }
 
   @override
@@ -505,10 +535,10 @@ class RDDefect extends RDWorkItem {
   RDSeverity get severity => _severity;
 
   RDDefect.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
-    _resolution = map['Resolution'];
-    _state = RDState.parse(map['State']);
-    _priority = RDPriority.parse(map['Priority']);
-    _severity = RDSeverity.parse(map['Severity']);
+    _resolution = map[r'Resolution'];
+    _state = RDState.parse(map[r'State']);
+    _priority = RDPriority.parse(map[r'Priority']);
+    _severity = RDSeverity.parse(map[r'Severity']);
   }
 }
 
@@ -516,17 +546,20 @@ class RDHierarchicalRequirement extends RDWorkItem {
 
   RDRisk _risk;
   bool _hasParent;
+  int _predecessorsCount = 0;
 
   RDRisk get risk => _risk;
 
   bool get hasParent => _hasParent;
 
+  int get predecessorsCount => _predecessorsCount;
+
   RDHierarchicalRequirement.fromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
-    _hasParent = map['HasParent'];
-    _risk = RDRisk.parse(map['c_Risk']);
+    _hasParent = map[r'HasParent'];
+    _risk = RDRisk.parse(map[r'c_Risk']);
+    _predecessorsCount = map[r'Predecessors'][r'Count'];
   }
-
 }
 
 class RDPortfolioItem extends RDWorkItem {
@@ -536,7 +569,6 @@ class RDPortfolioItem extends RDWorkItem {
   }
 
 }
-
 
 void main(List<String> args) {
   // To test
