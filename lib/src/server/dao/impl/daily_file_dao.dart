@@ -8,8 +8,8 @@ import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/server/dao/daily_dao.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 
-const int _maxBackupAttemtps = 200;
-const int _maxLastAttemtps = 40;
+const int _maxBackupAttempts = 200;
+const int _maxLastAttempts = 40;
 const Duration _oneDay = const Duration(days: 1);
 
 Logger _log = new Logger('daily_file_dao');
@@ -102,7 +102,7 @@ class _DateBasedRepo<T extends MappableWithDate> {
       String json = jsonEncoder.convert(map);
       String name = _dateBasedName(value.date);
       File file = _getClearFile(name);
-      file.writeAsStringSync(json);
+      file.writeAsStringSync(json, flush: true);
     } else {
       throw 'Cannot save a null value or a value w/o date.';
     }
@@ -134,14 +134,14 @@ class _DateBasedRepo<T extends MappableWithDate> {
     List<String> contents = [];
     int attemtps = 0;
     DateTime d = date;
-    while (attemtps++ < _maxLastAttemtps && contents.length < number) {
+    while (attemtps++ < _maxLastAttempts && contents.length < number) {
       File file = _getFile(d);
       if (file != null) contents.add(file.readAsStringSync());
       if (contents.length == 1 && number == 0) break;
       d = number > 0 ? d.subtract(_oneDay) : d.add(_oneDay);
     }
-    if (attemtps >= _maxLastAttemtps) _log.warning(
-        '_maxLastAttemtps [${_maxLastAttemtps}] reached.');
+    if (attemtps >= _maxLastAttempts) _log.warning(
+        '_maxLastAttemtps [${_maxLastAttempts}] reached.');
     return contents.length == 0 ? null : contents;
   }
 
@@ -169,7 +169,7 @@ class _DateBasedRepo<T extends MappableWithDate> {
     File file = new File(
         '${_dataDir.path}${Platform.pathSeparator}${name}.json');
     if (file.existsSync()) {
-      for (int i = 1; i <= _maxBackupAttemtps; i++) {
+      for (int i = 1; i <= _maxBackupAttempts; i++) {
         String backupPath = '${_backupDir.path}${Platform
             .pathSeparator}${name}_$i.json';
         File backupFile = new File(backupPath);
@@ -177,7 +177,7 @@ class _DateBasedRepo<T extends MappableWithDate> {
           file.renameSync(backupPath);
           break;
         }
-        if (i == _maxBackupAttemtps) throw 'Too many attempts to bakup [${file
+        if (i == _maxBackupAttempts) throw 'Too many attempts to bakup [${file
             .path}].';
       }
     }

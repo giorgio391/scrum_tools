@@ -80,6 +80,20 @@ String format(dynamic value) {
   return value.toString();
 }
 
+String bold(String value) {
+  StringBuffer sb = new StringBuffer();
+  Printer p = new Printer(sink: sb);
+  p.bold(value);
+  return sb.toString();
+}
+
+String red(String value) {
+  StringBuffer sb = new StringBuffer();
+  Printer p = new Printer(sink: sb);
+  p.red(value);
+  return sb.toString();
+}
+
 class Printer {
 
   StringSink _sink;
@@ -131,6 +145,10 @@ class Printer {
 
   PrinterColumn column(String title, int length) {
     return new PrinterColumn(this, title, length);
+  }
+
+  Printer up([String text, int number = 1] ) {
+    return style('[${number.toString()}A', text);
   }
 
   Printer bold([String text]) {
@@ -206,8 +224,8 @@ class Printer {
   }
 
   Printer style(String code, [String text]) {
-    stdout.writeCharCode(27);
-    stdout.write(code);
+    _sink.writeCharCode(27);
+    _sink.write(code);
     if (text != null) {
       write(text);
       reset();
@@ -216,8 +234,8 @@ class Printer {
   }
 
   Printer reset() {
-    stdout.writeCharCode(27);
-    stdout.write(r'[0m');
+    _sink.writeCharCode(27);
+    _sink.write(r'[0m');
     return this;
   }
 }

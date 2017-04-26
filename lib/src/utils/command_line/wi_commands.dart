@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:prompt/prompt.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
+import 'package:scrum_tools/src/utils/repository/repository.dart';
+import 'package:scrum_tools/src/utils/repository/impl/file_repository.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
 import 'package:scrum_tools/src/utils/command_line/config.dart';
 import 'package:scrum_tools/src/utils/command_line/formatter.dart';
@@ -9,6 +12,29 @@ import 'package:scrum_tools/src/rally/basic_rally_service.dart';
 import 'package:scrum_tools/src/rally/wi_validator.dart';
 
 Printer _p = new Printer();
+
+List <String> _wimeta1 = [
+  r'psnow/master',
+  r'psnow/live',
+  r'prepro-master/docs',
+  r'prepro-master/products',
+  r'prepro-live/docs',
+  r'prepro-live/products'
+];
+
+List<String> _wimeta2 = [
+  r'db/gordon',
+  r'db/pmaster',
+  r'solr/pmaster',
+  r'solr/cdplus',
+  r'solr/darassets',
+  r'sh/pmaster',
+  r'sh/cdplus',
+  r'sh/darassets'
+];
+
+List<String> _wimeta = new List<String>.from(_wimeta1)
+  ..addAll(_wimeta2);
 
 class WorkItemsCommands extends UtilOptionCommand {
 
@@ -25,25 +51,25 @@ class WorkItemsCommands extends UtilOptionCommand {
 
     if (r'dep-pro' == action) {
       rallyService.getPRODeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk);
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
       });
     } else if (r'dep-pre' == action) {
       rallyService.getPREDeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk);
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
       });
     } else if (r'dep-uat' == action) {
       rallyService.getUATDeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk);
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
       });
     } else if (r'dep-uat->pre' == action) {
       rallyService.getUAT2PREDeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk);
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
       });
     } else if (r'dep-uat->pro' == action) {
       rallyService.getUAT2PRODeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk);
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
       });
     } else if (r'dev-pending' == action) {
       _checkMissedIteration(() {
@@ -62,18 +88,20 @@ class WorkItemsCommands extends UtilOptionCommand {
     } else if (action.startsWith(r'rtd')) {
       _checkMissedIteration(() {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
+          RepositorySync wiMetaRepo = _getWiMetaRepo();
           rallyService.getPREDeploymentPending().then((
               Iterable<RDWorkItem> ite) {
             _p.backWhite().bold()
                 .red(r'>>>>>>>>>>> PRE >>>>>>>>>>>>>>')
                 .writeln();
-            _printIterableAndClose(ite, chk);
-            rallyService.getUATDeploymentPending().then((
-                Iterable<RDWorkItem> ite) {
-              _p.backWhite().bold()
-                  .blue(r'>>>>>>>>>>> UAT >>>>>>>>>>>>>>')
-                  .writeln();
-              _printIterableAndClose(ite, chk);
+            _printIterableAndClose(ite, chk, wiMetaRepo: wiMetaRepo).then((_) {
+              rallyService.getUATDeploymentPending().then((
+                  Iterable<RDWorkItem> ite) {
+                _p.backWhite().bold()
+                    .blue(r'>>>>>>>>>>> UAT >>>>>>>>>>>>>>')
+                    .writeln();
+                _printIterableAndClose(ite, chk, wiMetaRepo: wiMetaRepo);
+              });
             });
           });
         });
@@ -81,18 +109,22 @@ class WorkItemsCommands extends UtilOptionCommand {
     } else if (action.startsWith(r'rtp')) {
       _checkMissedIteration(() {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
+          RepositorySync wiMetaRepo = _getWiMetaRepo();
           _p.backWhite().bold()
               .red(r'>>>>>>> LIVE & MASTER >>>>>>>>>')
               .writeln();
           _printIterableAndClose(
               ite.where((RDWorkItem workItem) =>
-              workItem.ready && workItem.expedite), chk);
-          _p.backWhite().bold()
-              .blue(r'>>>>>>>>>> MASTER >>>>>>>>>>>>>')
-              .writeln();
-          _printIterableAndClose(
-              ite.where((RDWorkItem workItem) =>
-              workItem.ready && !workItem.expedite), chk);
+              workItem.ready && workItem.expedite), chk,
+              wiMetaRepo: wiMetaRepo).then((_) {
+            _p.backWhite().bold()
+                .blue(r'>>>>>>>>>> MASTER >>>>>>>>>>>>>')
+                .writeln();
+            _printIterableAndClose(
+                ite.where((RDWorkItem workItem) =>
+                workItem.ready && !workItem.expedite), chk,
+                wiMetaRepo: wiMetaRepo);
+          });
         });
       });
     } else if (action.startsWith(r'ite-')) {
@@ -121,6 +153,11 @@ class WorkItemsCommands extends UtilOptionCommand {
           _printIterableAndClose(workItems, chk, extraCol: extra.print);
         });
       });
+    } else if (action == r'meta') {
+      _meta();
+    } else if (action.startsWith(r'meta-')) {
+      Set<String> list = _resolveList(action);
+      _meta(list);
     } else {
       _p.errorln('Unsupported!');
     }
@@ -172,105 +209,121 @@ class WorkItemsCommands extends UtilOptionCommand {
   }
 
   Future _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk,
-      {_ColumnPrinter extraCol}) async {
+      {_ColumnPrinter extraCol, RepositorySync wiMetaRepo}) async {
     if (hasValue(ite)) {
-      for (RDWorkItem wi in ite) {
-        if (extraCol != null) {
-          extraCol(_p, wi);
-        }
-        bool assignedToClient = WorkItemValidator.assignedToClient(wi);
-        RDPriority p = inferWIPriority(wi);
-        RDSeverity s = inferSeverity(wi);
-        if ((assignedToClient && !wi.blocked) || wi.owner == null) _p.blink()
-            .bold();
-        _p.write(wi.scheduleState < RDScheduleState.IN_PROGRESS ? r'*' : r' ');
-        _p.write(wi.scheduleState < RDScheduleState.COMPLETED ? r'*' : r' ');
-        _p.reset();
-        _p.write(wi.expedite ? r'+' : r' ');
-        if (wi.blocked) {
-          _p.bold().red().inverted(r'B');
-        } else {
-          _p.write(r' ');
-        }
-        _p.write(r' ');
-        if (wi is RDHierarchicalRequirement && wi.predecessorsCount > 0) {
-          _p.bold();
-        }
-        _p.write(formatString(wi.formattedID, 8));
-        _p.reset();
-        _p.write(formatString(wi.name, 70));
-        _p.grey(r' > ');
-        if (wi.owner != null) {
-          if (assignedToClient) {
-            _p.yellow();
-          } else if (WorkItemValidator.assignedQADeployer(wi)) {
-            _p.cyan();
-          } else {
-            _p.blue();
-          }
-          _p.write(formatString(wi.owner.displayName, 18));
-          _p.reset();
-        } else {
-          _p.write(formatString(r' ', 18));
-        }
-
-        if (wi.ready) {
-          _p.green().bold().inverted(r'R');
-        } else {
-          _p.write(r' ');
-        }
-        _p.bold().inverted();
-        if (wi.scheduleState == RDScheduleState.UNDEFINED) {
-          _p.grey();
-        } else if (wi.scheduleState == RDScheduleState.COMPLETED) {
-          _p.green();
-        } else if (wi.scheduleState == RDScheduleState.ACCEPTED) {
-          //_p.grey();
-        } else if (wi.scheduleState == RDScheduleState.ACCEPTED_BY_OWNER) {
-          _p.cyan();
-        } else {
-          _p.blue();
-        }
-        _p.write(wi.scheduleState.abbr);
-        _p.reset();
-        _p.write(r' ');
-        _p.write(formatString(
-            wi.iteration == null ? r' ' : 'S${wi.iteration.name.substring(
-                wi.iteration.name.length - 3).trim()}', 5));
-        if (hasMaxPrioritization(wi)) _p.blink().bold().red();
-        _p.write(formatString(p == null ? r' ' : p.name.split(r' ')[0], 8));
-        _p.reset();
-        _p.write(formatString(s == null ? r' ' : s.name.split(r' ')[0], 8));
-        _p.grey(r' > ');
-        //_p.writeln(formatDate(wi.lastUpdateDate));
-        if (wi.planEstimate != null && wi.planEstimate > 5.0)
-          _p.bold();
-        else if (wi.planEstimate != null && wi.planEstimate < 2.0)
-          _p.cyan();
-        else if (wi.planEstimate == null && !wi.blocked) _p.bold().red();
-        _p.write(formatDouble(wi.planEstimate));
-        _p.reset();
-
-        if (hasValue(wi.tags)) {
-          _p.write(r' ');
-          new List.from(wi.tags)
-            ..sort()
-            ..forEach((String tag) {
-              _p.write(r'·');
-              _p.blue().inverted(tag);
-            });
-        }
-        _p.writeln();
-
-        if (chk) {
-          await _printValidation(wi);
-        }
+      for (RDWorkItem workItem in ite) {
+        await _printWorkItem
+          (workItem, chk, extraCol: extraCol, wiMetaRepo: wiMetaRepo);
       }
       _p.writeln('Count: ${ite.length}');
     } else {
       _p.writeln(r'No work item available!');
     }
     rallyService.close();
+  }
+
+  Future _printWorkItem(RDWorkItem workItem, bool chk,
+      {_ColumnPrinter extraCol, RepositorySync wiMetaRepo}) async {
+    if (extraCol != null) {
+      extraCol(_p, workItem);
+    }
+    bool assignedToClient = WorkItemValidator.assignedToClient(workItem);
+    RDPriority p = inferWIPriority(workItem);
+    RDSeverity s = inferSeverity(workItem);
+    if ((assignedToClient && !workItem.blocked) || workItem.owner == null) _p
+        .blink()
+        .bold();
+    _p.write(
+        workItem.scheduleState < RDScheduleState.IN_PROGRESS ? r'*' : r' ');
+    _p.write(workItem.scheduleState < RDScheduleState.COMPLETED ? r'*' : r' ');
+    _p.reset();
+    _p.write(workItem.expedite ? r'+' : r' ');
+    if (workItem.blocked) {
+      _p.bold().red().inverted(r'B');
+    } else {
+      _p.write(r' ');
+    }
+    _p.write(r' ');
+    if (workItem is RDHierarchicalRequirement &&
+        workItem.predecessorsCount > 0) {
+      _p.bold();
+    }
+    _p.write(formatString(workItem.formattedID, 8));
+    _p.reset();
+    _p.write(formatString(workItem.name, 70));
+    _p.grey(r' > ');
+    if (workItem.owner != null) {
+      if (assignedToClient) {
+        _p.yellow();
+      } else if (WorkItemValidator.assignedQADeployer(workItem)) {
+        _p.cyan();
+      } else {
+        _p.blue();
+      }
+      _p.write(formatString(workItem.owner.displayName, 18));
+      _p.reset();
+    } else {
+      _p.write(formatString(r' ', 18));
+    }
+
+    if (workItem.ready) {
+      _p.green().bold().inverted(r'R');
+    } else {
+      _p.write(r' ');
+    }
+    _p.bold().inverted();
+    if (workItem.scheduleState == RDScheduleState.UNDEFINED) {
+      _p.grey();
+    } else if (workItem.scheduleState == RDScheduleState.COMPLETED) {
+      _p.green();
+    } else if (workItem.scheduleState == RDScheduleState.ACCEPTED) {
+      //_p.grey();
+    } else if (workItem.scheduleState == RDScheduleState.ACCEPTED_BY_OWNER) {
+      _p.cyan();
+    } else {
+      _p.blue();
+    }
+    _p.write(workItem.scheduleState.abbr);
+    _p.reset();
+    _p.write(r' ');
+    _p.write(formatString(
+        workItem.iteration == null ? r' ' : 'S${workItem.iteration.name
+            .substring(
+            workItem.iteration.name.length - 3).trim()}', 5));
+    if (hasMaxPrioritization(workItem)) _p.blink().bold().red();
+    _p.write(formatString(p == null ? r' ' : p.name.split(r' ')[0], 8));
+    _p.reset();
+    _p.write(formatString(s == null ? r' ' : s.name.split(r' ')[0], 8));
+    _p.grey(r' > ');
+    //_p.writeln(formatDate(wi.lastUpdateDate));
+    if (workItem.planEstimate != null && workItem.planEstimate > 5.0)
+      _p.bold();
+    else if (workItem.planEstimate != null && workItem.planEstimate < 2.0)
+      _p.cyan();
+    else
+    if (workItem.planEstimate == null && !workItem.blocked) _p.bold().red();
+    _p.write(formatDouble(workItem.planEstimate));
+    _p.reset();
+
+    if (hasValue(workItem.tags)) {
+      _p.write(r' ');
+      new List.from(workItem.tags)
+        ..sort()
+        ..forEach((String tag) {
+          _p.write(r'·');
+          _p.blue().inverted(tag);
+        });
+    }
+    _p.writeln();
+
+    if (chk) {
+      await _printValidation
+        (workItem);
+    }
+
+    if (wiMetaRepo != null) {
+      _printWimeta(wiMetaRepo, workItem.formattedID);
+    }
   }
 
   Future _printValidation(RDWorkItem workItem) async {
@@ -293,6 +346,147 @@ class WorkItemsCommands extends UtilOptionCommand {
       });
     }
   }
+
+  void _meta([Iterable<String> wiCodes]) {
+    if (hasValue(wiCodes)) {
+      wiCodes.forEach((String wiCode) => _singleMeta(wiCode));
+    } else {
+      _singleMeta();
+    }
+  }
+
+  void _singleMeta([String wiCode]) {
+    _p.writeln();
+    if (!hasValue(wiCode) || !hasValue(wiCode.trim())) {
+      String code = askSync(
+          new Question(r'  Work item code:', defaultsTo: r''));
+      if (!hasValue(code) || !hasValue(code.trim())) return;
+      code = normalizeWorkItemCodeFormat(code);
+      if (validWorkItemCodePattern(code)) {
+        _p.up('                                                           \r');
+        rallyService.getWorkItem(code).then((RDWorkItem wi) {
+          if (wi != null) {
+            _printWorkItem(wi, true).then((_) {
+              _singleMeta(code);
+            });
+          } else {
+            _p.red(r'Work item code not found!').writeln();
+            _singleMeta();
+          }
+        });
+      } else {
+        _p.red(r'Work item code not valid!').writeln();
+        _singleMeta();
+      }
+    } else {
+      RepositorySync repo = _getWiMetaRepo();
+      PersistedData pData = repo.get(wiCode);
+      bool alreadyPersisted = pData != null;
+      Map<String, String> map = pData?.data;
+
+      map ??= new Map<String, String>();
+
+      Function options = alreadyPersisted ?
+          () =>
+          askSync(new Question(
+              '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
+                  r'd')}elete')) :
+          () =>
+          askSync(new Question(
+              '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel'));
+
+      String action = alreadyPersisted ? () {
+        _printMap(map, _wimeta1);
+        _printMap(map, _wimeta2);
+        return askSync(new Question(
+            '  ${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
+                r'd')}elete'));
+      }() : r'e';
+
+      if (action == r's') {
+        _p.writeln('No need to save because no change was done!');
+      } else {
+        while (action == r'e') {
+          _edit(map, _wimeta);
+          _printMap(map, _wimeta1);
+          _printMap(map, _wimeta2);
+          if (!alreadyPersisted && !hasValue(map)) {
+            action = r'c';
+            break;
+          }
+          action = options();
+          while (![r's', r'e', r'c', r'd'].contains(action)) {
+            action = options();
+          }
+        }
+
+        if (action == r'd' || (!hasValue(map) && alreadyPersisted)) {
+          if (!alreadyPersisted) {
+            _p.writeln('No need to delete because it was not persisted!');
+          } else {
+            bool confirm = askSync(new Question.confirm(red(r'Delete?')));
+            if (confirm) {
+              repo.delete(wiCode);
+              _p.red(r'Meta for [').bold(wiCode).red(r'] deleted!').writeln();
+            }
+          }
+        } else if (action == r's') {
+          repo.save(wiCode, map);
+          _p.yellow(r'Meta for [').bold(wiCode).yellow(r'] saved!').writeln();
+        }
+      }
+      rallyService.close(force: true);
+    }
+  }
+
+  void _edit(Map<String, String> map, List<String> prompts) {
+    prompts.forEach((String prompt) {
+      String currentValue = map[prompt];
+      currentValue ??= r'';
+      String value = askSync(new Question('  ${prompt}${hasValue(currentValue)
+          ? ' [${bold(currentValue)}]'
+          : r''}:', defaultsTo: currentValue));
+      _p.up('                                                              \r');
+      if (value != null && value.length > 0 && value
+          .trim()
+          .length == 0) {
+        map.remove(prompt);
+      }
+      if (hasValue(value) && hasValue(value.trim())) {
+        map[prompt] = value;
+        _p.write('  ${prompt} [').bold(value).writeln(r'].             ');
+      }
+    });
+  }
+
+  void _printWimeta(RepositorySync repo, String wiCode) {
+    PersistedData pData = repo.get(wiCode);
+    if (pData != null) {
+      _printMap(pData.data, _wimeta1);
+      _printMap(pData.data, _wimeta2);
+    }
+  }
+
+  void _printMap(Map<String, String> map, [List<String> keys]) {
+    StringBuffer sb = new StringBuffer();
+    Printer p = new Printer(sink: sb);
+    (hasValue(keys) ? keys : map.keys).forEach((String key) {
+      String value = map[key];
+      if (hasValue(value)) {
+        p.write(r' · ').blue(key).write(r' [').bold(value).write(r']');
+      }
+    });
+    if (sb.length > 0) {
+      _p.yellow(r'   ==>').write(sb.toString()).writeln();
+    }
+  }
+}
+
+RepositorySync _getWiMetaRepo() {
+  String name = cfgValue(r'wi_commands')[r'meta-repo'][r'name'];
+  String dir = cfgValue(r'wi_commands')[r'meta-repo'][r'dir'];
+  FileRepository repo = new FileRepository(name, dir);
+  return repo;
 }
 
 typedef void _ColumnPrinter(Printer p, RDWorkItem workItem);

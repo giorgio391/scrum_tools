@@ -16,6 +16,11 @@ log:
 
 templates: scrum_tools/assets/templates
 
+wi_commands:
+  meta-repo:
+    name: wimeta
+    dir: /home/lubuntu/scrum_repo/wimeta
+
 spread_daily:
   conf-1:
     mode: text

@@ -5,6 +5,13 @@ import 'package:scrum_tools/src/utils/cache.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'rally_entities.dart';
 
+RegExp _defectRegExp = new RegExp(r'^DE[0-9][0-9][0-9][0-9]$');
+RegExp _hierarchicalRequirementRegExp = new RegExp(
+    r'^US[0-9][0-9][0-9][0-9][0-9]$');
+RegExp _3DRegExp = new RegExp(r'^[0-9][0-9][0-9]$');
+RegExp _4DRegExp = new RegExp(r'^[0-9][0-9][0-9][0-9]$');
+RegExp _5DRegExp = new RegExp(r'^[0-9][0-9][0-9][0-9][0-9]$');
+
 class BasicRallyService {
 
   static const String _defect = r'defect';
@@ -35,14 +42,9 @@ class BasicRallyService {
       .MAX_RISK.name.replaceAll(
       r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
 
-
   int get defaultProjectID => _projectId;
 
   String _pathRoot;
-
-  RegExp _defectRegExp = new RegExp(r'^DE[0-9][0-9][0-9][0-9]$');
-  RegExp _hierarchicalRequirementRegExp = new RegExp(
-      r'^US[0-9][0-9][0-9][0-9][0-9]$');
 
   Cache<int, RDIteration> _iterationsCache;
   Cache<String, RDUser> _usersCache;
@@ -436,7 +438,6 @@ class BasicRallyService {
       } else {
         completer.complete(null);
       }
-
     }).catchError((error) {
       _handleError(completer, error);
     });
@@ -520,6 +521,32 @@ class BasicRallyService {
       _queryWorkItemsSortByCode(_uat2proDeploymentPendingQuery, true);
 
 }
+
+bool validWorkItemCodePattern(String code) {
+  if (hasValue(code) && hasValue(code.trim())) {
+    return _defectRegExp.hasMatch(code) ||
+        _hierarchicalRequirementRegExp.hasMatch(code);
+  }
+  return false;
+}
+
+String normalizeWorkItemCodeFormat(String ref) {
+  if (hasValue(ref)) {
+    String code = ref.trim().toUpperCase();
+    if (_defectRegExp.hasMatch(code) ||
+        _hierarchicalRequirementRegExp.hasMatch(code)) {
+      return code;
+    } else if (_3DRegExp.hasMatch(code)) {
+      return "US19${code}";
+    } else if (_4DRegExp.hasMatch(code)) {
+      return "DE${code}";
+    } else if (_5DRegExp.hasMatch(code)) {
+      return "US${code}";
+    }
+  }
+  return null;
+}
+
 
 int FormattedIDComparator(RDWorkItem workItem1, RDWorkItem workItem2) {
   if (workItem1 == null && workItem2 == null) return 0;

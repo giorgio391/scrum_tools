@@ -261,9 +261,9 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
     Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
         entry.teamMemberCode, () {
       return {
-        'team-member-code': entry.teamMemberCode,
-        'hours-a': 0.0,
-        'hours-b': 0.0
+        r'team-member-code': entry.teamMemberCode,
+        r'hours-a': 0.0,
+        r'hours-b': 0.0
       };
     });
     if (entry.scope == Scope.TODAY) {
@@ -282,24 +282,24 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
       reported.add(entry);
       if (entry.hours != null) {
         if (hasValue(entry.workItemCode) || hasValue(entry.statement)) {
-          teamMemberRecord['hours-a'] += entry.hours;
+          teamMemberRecord[r'hours-a'] += entry.hours;
           hoursA += entry.hours;
         } else {
-          teamMemberRecord['hours-b'] += entry.hours;
+          teamMemberRecord[r'hours-b'] += entry.hours;
           hoursB += entry.hours;
         }
       }
     }
   });
   Map<String, dynamic> map = {
-    'date': list[0].date,
-    'hours-a': hoursA,
-    'hours-b': hoursB,
-    'team-members-map': byTeamMember
+    r'date': list[0].date,
+    r'hours-a': hoursA,
+    r'hours-b': hoursB,
+    r'team-members-map': byTeamMember
   };
 
   if (list.length > 1) {
-    map['previous-date'] = list[1].date;
+    map[r'previous-date'] = list[1].date;
     if (hasValue(list[1].entries)) {
       list[1].entries.forEach((DailyEntry entry) {
         if (entry.scope == Scope.TODAY) {
@@ -307,7 +307,7 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
               entry.workItemCode);
           Map<String, dynamic> teamMemberRecord = byTeamMember.putIfAbsent(
               entry.teamMemberCode, () {
-            return {'hours-a': 0.0, 'hours-b': 0.0};
+            return {r'hours-a': 0.0, r'hours-b': 0.0};
           });
           Map<String, Status> previousPlan = teamMemberRecord.putIfAbsent(
               r'previous-plan', () {
@@ -320,7 +320,7 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
             if (stat < entry.status) previousPlan[key] = entry.status;
           } else {
             List<DailyEntry> unreported = teamMemberRecord.putIfAbsent(
-                'unreported', () => []);
+                r'unreported', () => []);
             unreported.add(entry);
           }
         }
@@ -331,12 +331,12 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
   Completer<Map<String, dynamic>> completer = new Completer<
       Map<String, dynamic>>();
   if (hasValue(workItemCodes)) {
-    map['work-item-codes'] = workItemCodes;
+    map[r'work-item-codes'] = workItemCodes;
 
     rallyService.currentIteration.then((RDIteration currentIteration) {
       map['current-iteration'] = currentIteration;
       _findWorkItems(workItemCodes).then((Map<String, RDWorkItem> wItems) {
-        map['work-items'] = wItems;
+        map[r'work-items'] = wItems;
         PrioritizationComparator prioritizationComparator = new PrioritizationComparator(
             currentIteration);
         DailyComparator dailyComparator1 = composeComparator(wrapWIComparator(
@@ -346,14 +346,14 @@ Future<Map<String, dynamic>> _digest(List<DailyReport> list) {
             processPart, keyPart);
 
         byTeamMember.keys.forEach((String key) {
-          if (hasValue(byTeamMember[key]['plan'])) {
-            byTeamMember[key]['plan'].sort(dailyComparator1);
+          if (hasValue(byTeamMember[key][r'plan'])) {
+            byTeamMember[key][r'plan'].sort(dailyComparator1);
           }
-          if (hasValue(byTeamMember[key]['reported'])) {
-            byTeamMember[key]['reported'].sort(dailyComparator2);
+          if (hasValue(byTeamMember[key][r'reported'])) {
+            byTeamMember[key][r'reported'].sort(dailyComparator2);
           }
-          if (hasValue(byTeamMember[key]['unreported'])) {
-            byTeamMember[key]['unreported'].sort(dailyComparator2);
+          if (hasValue(byTeamMember[key][r'unreported'])) {
+            byTeamMember[key][r'unreported'].sort(dailyComparator2);
           }
         });
         completer.complete(map);
@@ -371,7 +371,7 @@ typedef Future _entriesPrinter();
 
 class SpreadDaily extends UtilOptionCommand {
 
-  static const String logName = "spread-daily";
+  static const String logName = r"spread-daily";
 
   static Logger _log = new Logger(logName);
 
@@ -382,7 +382,7 @@ class SpreadDaily extends UtilOptionCommand {
   String get help => r'Utility to spread dailies.';
 
   void executeOption(String option) {
-    Map<String, dynamic> conf = cfgValue('spread_daily')['conf-${option}'];
+    Map<String, dynamic> conf = cfgValue(r'spread_daily')['conf-${option}'];
     int number = conf['number'];
     _executeOption(number, conf);
   }

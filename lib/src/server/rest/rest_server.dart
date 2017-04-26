@@ -43,8 +43,11 @@ class RestServer {
 
       if (handler != null) {
         HttpRequest httpRequest = request.input;
+        StringBuffer data = new StringBuffer();
         httpRequest.transform(UTF8.decoder).listen((content) {
-          Map<String, dynamic> requestMap = JSON.decode(content);
+          data.write(content);
+        }, onDone: () {
+          Map<String, dynamic> requestMap = JSON.decode(data.toString());
           Completer<Map<String, dynamic>> completer = new Completer
           <Map<String, dynamic>>();
           completer.future.then((Map<String, dynamic> responseMap) {
