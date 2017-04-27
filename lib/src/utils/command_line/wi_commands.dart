@@ -33,8 +33,12 @@ List<String> _wimeta2 = [
   r'sh/darassets'
 ];
 
+List<String> _wimeta3 = [
+  r'notes'
+];
+
 List<String> _wimeta = new List<String>.from(_wimeta1)
-  ..addAll(_wimeta2);
+  ..addAll(_wimeta2)..addAll(_wimeta3);
 
 class WorkItemsCommands extends UtilOptionCommand {
 
@@ -398,6 +402,7 @@ class WorkItemsCommands extends UtilOptionCommand {
       String action = alreadyPersisted ? () {
         _printMap(map, _wimeta1);
         _printMap(map, _wimeta2);
+        _printMap(map, _wimeta3);
         return askSync(new Question(
             '  ${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
                 r'd')}elete'));
@@ -410,6 +415,7 @@ class WorkItemsCommands extends UtilOptionCommand {
           _edit(map, _wimeta);
           _printMap(map, _wimeta1);
           _printMap(map, _wimeta2);
+          _printMap(map, _wimeta3);
           if (!alreadyPersisted && !hasValue(map)) {
             action = r'c';
             break;
@@ -443,9 +449,7 @@ class WorkItemsCommands extends UtilOptionCommand {
     prompts.forEach((String prompt) {
       String currentValue = map[prompt];
       currentValue ??= r'';
-      String value = askSync(new Question('  ${prompt}${hasValue(currentValue)
-          ? ' [${bold(currentValue)}]'
-          : r''}:', defaultsTo: currentValue));
+      String value = askSync(new Question('  ${prompt}:', defaultsTo: currentValue));
       _p.up('                                                              \r');
       if (value != null && value.length > 0 && value
           .trim()
@@ -464,6 +468,7 @@ class WorkItemsCommands extends UtilOptionCommand {
     if (pData != null) {
       _printMap(pData.data, _wimeta1);
       _printMap(pData.data, _wimeta2);
+      _printMap(pData.data, _wimeta3);
     }
   }
 

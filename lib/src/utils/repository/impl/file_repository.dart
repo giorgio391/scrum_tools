@@ -129,7 +129,7 @@ class FileRepository implements RepositorySync {
     if (file != null) {
       _PersistedData _pData = new _PersistedData._fromFile(file);
       _logDelete(key, author);
-      file.deleteSync();
+      _getClearFile(key); // To trigger backup.
       return _pData;
     }
     return null;
