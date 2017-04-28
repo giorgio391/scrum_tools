@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:start/start.dart';
+import 'package:scrum_tools/src/rally/const.dart';
 import 'package:scrum_tools/src/utils/cache.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:logging/logging.dart';
 
-class RallyDevProxy implements ScrumHttpClient {
+const String _baseUrl = rallyAPIBaseUrl;
 
-  static const String _baseUrl =
-      'https://rally1.rallydev.com/slm/webservice/v2.0';
+class RallyDevProxy implements ScrumHttpClient {
 
   static final Uri _baseUri = Uri.parse(_baseUrl);
 
@@ -35,6 +35,48 @@ class RallyDevProxy implements ScrumHttpClient {
 
     _httpClient = new HttpClient();
     _httpClient.addCredentials(_baseUri, r'Rally ALM', credentials);
+  }
+
+  Future<Map<String, dynamic>> post(String part, String payload) {
+    Completer<Map<String, dynamic>> completer = new Completer<
+        Map<String, dynamic>>();
+    Uri url = Uri.parse('${_baseUrl}/security/authorize');
+    _httpClient.getUrl(url).then((HttpClientRequest request) {
+      request.close().then((HttpClientResponse response) {
+        List<Cookie> cookies = response.cookies;
+        StringBuffer sb = new StringBuffer();
+        response.transform(UTF8.decoder).listen((content) {
+          sb.write(content);
+        })
+          ..onDone(() {
+            Map<String, dynamic> map = JSON.decode(sb.toString());
+            String token = map[r'OperationResult'][r'SecurityToken'];
+            Uri url = Uri.parse('${_baseUrl}${part}?key=${token}');
+            _httpClient.postUrl(url).then((HttpClientRequest request) {
+              request.cookies.addAll(cookies);
+              request.writeln(payload);
+              request.close().then((HttpClientResponse response) {
+                StringBuffer sb = new StringBuffer();
+                response.transform(UTF8.decoder).listen((content) {
+                  sb.write(content);
+                })
+                  ..onDone(() {
+                    Map<String, dynamic> map = JSON.decode(sb.toString());
+                    completer.complete(map);
+                  });
+              }).catchError((error) {
+                completer.completeError(error);
+                _log.severe(error);
+              });
+            });
+          });
+      }).catchError((error) {
+        _log.severe(error);
+      });
+    }).catchError((error) {
+      _log.severe(error);
+    });
+    return completer.future;
   }
 
   void init(Server appServer) {

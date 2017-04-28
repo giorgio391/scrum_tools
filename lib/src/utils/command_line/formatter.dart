@@ -1,5 +1,7 @@
 import 'dart:io' show stdout, stderr;
 
+import 'package:scrum_tools/src/rally/const.dart';
+import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/daily/daily_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 
@@ -12,12 +14,26 @@ String formatDate(DateTime date) {
   return null;
 }
 
+String formatTimestamp(DateTime date) {
+  StringBuffer sb = new StringBuffer(formatDate(date));
+  if (date != null) {
+    sb.write(r' ');
+    sb.write(date.hour);
+    sb.write(r':');
+    sb.write(date.minute);
+    sb.write(r':');
+    sb.write(date.second);
+  }
+  return sb.toString();
+}
+
 String formatString(String string, int length, [String fill = r'           ']) {
   if (string != null) {
     if (string.length > length) return string.substring(0, length);
     if (string.length < length) {
       StringBuffer buffer = new StringBuffer();
-      for (int x = 0; x <= length - string.length; x++) buffer.write(fill);
+      for (int x = 0; x <= length - string.length; x++)
+        buffer.write(fill);
       return formatString('${string}${buffer.toString()}', length);
     }
     return string;
@@ -27,10 +43,11 @@ String formatString(String string, int length, [String fill = r'           ']) {
 
 String formatStringRight(String string, int length, [String fill = r'      ']) {
   if (string != null) {
-    if (string.length > length) return string.substring(string.length-length);
+    if (string.length > length) return string.substring(string.length - length);
     if (string.length < length) {
       StringBuffer buffer = new StringBuffer();
-      for (int x = 0; x <= length - string.length; x++) buffer.write(fill);
+      for (int x = 0; x <= length - string.length; x++)
+        buffer.write(fill);
       return formatStringRight('${buffer.toString()}${string}', length);
     }
     return string;
@@ -67,6 +84,26 @@ String formatList(List value) {
     });
     buffer.write(r']');
     return buffer.toString();
+  }
+  return null;
+}
+
+String formatSimpleWIHtmlList(Iterable<RDWorkItem> workItems) {
+  if (hasValue(workItems)) {
+    StringBuffer sb = new StringBuffer();
+    sb.writeln(r'<ul>');
+    workItems.forEach((RDWorkItem workItem) {
+      sb.write(r'<li>');
+      sb.write('<a href="${rallyWebBaseUrl}/search?keywords=${workItem
+          .formattedID}">');
+      sb.write(workItem.formattedID);
+      sb.writeln(r'</a>');
+      sb.write(r' ');
+      sb.write(workItem.name);
+      sb.writeln(r'</li>');
+    });
+    sb.writeln(r'</ul>');
+    return sb.toString();
   }
   return null;
 }
@@ -108,24 +145,31 @@ class Printer {
     _sink.write(format(value));
     return this;
   }
+
   Printer writeln([dynamic value]) {
-    if (value == null) _sink.writeln();
-    else _sink.writeln(format(value));
+    if (value == null)
+      _sink.writeln();
+    else
+      _sink.writeln(format(value));
     return this;
   }
+
   Printer error(dynamic value) {
     _sinkError.write(format(value));
     return this;
   }
+
   Printer errorln([dynamic value]) {
-    if (value == null) _sinkError.writeln();
-    else _sinkError.writeln(format(value));
+    if (value == null)
+      _sinkError.writeln();
+    else
+      _sinkError.writeln(format(value));
     return this;
   }
 
   Printer section(String title, [String line = r'-------------------------']) {
     if (hasValue(title)) {
-      String lineString = '+${formatString(line, title.length+2, line)}+';
+      String lineString = '+${formatString(line, title.length + 2, line)}+';
       writeln(lineString);
       writeln('| ${title} |');
       writeln(lineString);
@@ -147,12 +191,16 @@ class Printer {
     return new PrinterColumn(this, title, length);
   }
 
-  Printer up([String text, int number = 1] ) {
+  Printer up([String text, int number = 1]) {
     return style('[${number.toString()}A', text);
   }
 
   Printer bold([String text]) {
     return style(r'[1m', text);
+  }
+
+  Printer dim([String text]) {
+    return style(r'[2m', text);
   }
 
   Printer black([String text]) {
@@ -262,7 +310,7 @@ class PrinterColumn {
 
   Printer write(dynamic value) {
     String s = value.toString();
-    if (s.length > _length) s = '${s.substring(0,_length-1)}\\';
+    if (s.length > _length) s = '${s.substring(0, _length - 1)}\\';
     _p.write(formatString(s, _length));
     return _p.write(colSeparator);
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:logging/logging.dart';
 
@@ -14,6 +15,8 @@ import 'package:scrum_tools/src/server/dao/impl/daily_file_dao.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 
 import 'package:scrum_tools/src/rally/basic_rally_service.dart';
+
+String platformUser = Platform.environment[r'USER'];
 
 // **************************************************************************
 

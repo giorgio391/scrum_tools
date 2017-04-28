@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:scrum_tools/src/utils/cache.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
+import 'package:scrum_tools/src/rally/const.dart';
 import 'rally_entities.dart';
 
 RegExp _defectRegExp = new RegExp(r'^DE[0-9][0-9][0-9][0-9]$');
@@ -14,35 +15,33 @@ RegExp _5DRegExp = new RegExp(r'^[0-9][0-9][0-9][0-9][0-9]$');
 
 class BasicRallyService {
 
-  static const String _defect = r'defect';
-  static const String _us = r'hierarchicalrequirement';
-
-  static const int _projectId = 55308115013;
+  static const String _defect = defectUrlPart;
+  static const String _us = usUrlPart;
 
   //static const int _qaDeployerID = 55504055635;
 
   static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
 
-  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20nextweek))&pagesize=200&fetch=true';
+  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20nextweek))&pagesize=200&fetch=true';
 
-  static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  static const String _uat2preDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
+  static const String _uat2preDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
 
-  static const String _uat2proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _uat2proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  static const String _preDeploymentPendingQuery = '((((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
+  static const String _preDeploymentPendingQuery = '((((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
 
-  static const String _uatDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"UAT"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))&pagesize=200&fetch=true';
+  static const String _uatDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"UAT"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))&pagesize=200&fetch=true';
 
-  static final String _defectIterationMissingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Priority%20=%20"${RDPriority
+  static final String _defectIterationMissingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Priority%20=%20"${RDPriority
       .MAX_PRIORITY.name.replaceAll(
       r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
-  static final String _usIterationMissingQuery = '((((Project.ObjectID%20=%20${_projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Risk%20=%20"${RDRisk
+  static final String _usIterationMissingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Risk%20=%20"${RDRisk
       .MAX_RISK.name.replaceAll(
       r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
 
-  int get defaultProjectID => _projectId;
+  int get defaultProjectID => projectId;
 
   String _pathRoot;
 
@@ -79,11 +78,11 @@ class BasicRallyService {
   }
 
   String _byIterationNameQuery(String iterationName) =>
-      '((Project.ObjectID%20=%20${_projectId})%20AND%20(Iteration.Name%20=%20"${iterationName
+      '((Project.ObjectID%20=%20${projectId})%20AND%20(Iteration.Name%20=%20"${iterationName
           .replaceAll(r' ', '%20')}"))&pagesize=250&fetch=true';
 
   String _pendingByIterationNameQuery(String iterationName) =>
-      '(((Project.ObjectID%20=%20${_projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.Name%20=%20"${iterationName
+      '(((Project.ObjectID%20=%20${projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.Name%20=%20"${iterationName
           .replaceAll(r' ', '%20')}"))&pagesize=200&fetch=true';
 
   Future<RDIteration> _iterationRetriever(int key) {
@@ -329,7 +328,7 @@ class BasicRallyService {
     if (_currentIteration == null) {
       Completer<RDIteration> completer = new Completer<RDIteration>();
       _genericIDRetriever(r'iteration',
-          '(Project.ObjectID = ${_projectId}) AND ((StartDate <= today) AND (EndDate >= today))')
+          '(Project.ObjectID = ${projectId}) AND ((StartDate <= today) AND (EndDate >= today))')
           .then((int id) {
         getIteration(id).then((RDIteration iteration) {
           _currentIteration = iteration;

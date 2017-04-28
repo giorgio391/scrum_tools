@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:prompt/prompt.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
+import 'package:scrum_tools/src/utils/mailer.dart';
 import 'package:scrum_tools/src/utils/repository/repository.dart';
 import 'package:scrum_tools/src/utils/repository/impl/file_repository.dart';
 import 'package:scrum_tools/src/utils/command_line/utils_command.dart';
@@ -40,6 +41,10 @@ List<String> _wimeta3 = [
 List<String> _wimeta = new List<String>.from(_wimeta1)
   ..addAll(_wimeta2)..addAll(_wimeta3);
 
+typedef Future _ExtraRow(RDWorkItem workItem);
+
+typedef Future _ExtraAction(Iterable<RDWorkItem> workItems);
+
 class WorkItemsCommands extends UtilOptionCommand {
 
   String get abbr => r"w";
@@ -55,30 +60,36 @@ class WorkItemsCommands extends UtilOptionCommand {
 
     if (r'dep-pro' == action) {
       rallyService.getPRODeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
+            extraAction: new _MailExtraAction('PRO deployment').mail);
       });
     } else if (r'dep-pre' == action) {
       rallyService.getPREDeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
+            extraAction: new _MailExtraAction('PRE deployment').mail);
       });
     } else if (r'dep-uat' == action) {
       rallyService.getUATDeploymentPending().then((Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
+            extraAction: new _MailExtraAction('UAT deployment').mail);
       });
     } else if (r'dep-uat->pre' == action) {
       rallyService.getUAT2PREDeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
+            extraAction: new _MailExtraAction('UAT->PRE deployment').mail);
       });
     } else if (r'dep-uat->pro' == action) {
       rallyService.getUAT2PRODeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo());
+        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
+            extraAction: new _MailExtraAction('UAT->PRO deployment').mail);
       });
     } else if (r'dev-pending' == action) {
       _checkMissedIteration(() {
         rallyService.getDevTeamPending().then((Iterable<RDWorkItem> ite) {
-          _printIterableAndClose(ite, chk);
+          _printIterableAndClose(ite, chk,
+              extraAction: new _MailExtraAction('Pending').mail);
         });
       });
     } else if (action.startsWith(r'dev-pending-')) {
@@ -86,7 +97,8 @@ class WorkItemsCommands extends UtilOptionCommand {
       _checkMissedIteration(() {
         rallyService.getDevTeamPendingInIteration(iterationName).then((
             Iterable<RDWorkItem> ite) {
-          _printIterableAndClose(ite, chk);
+          _printIterableAndClose(ite, chk,
+              extraAction: new _MailExtraAction('Pending ${iterationName}').mail);
         });
       });
     } else if (action.startsWith(r'rtd')) {
@@ -213,13 +225,29 @@ class WorkItemsCommands extends UtilOptionCommand {
   }
 
   Future _printIterableAndClose(Iterable<RDWorkItem> ite, bool chk,
-      {_ColumnPrinter extraCol, RepositorySync wiMetaRepo}) async {
+      {_ColumnPrinter extraCol, RepositorySync wiMetaRepo, _ExtraRow extraRow, _ExtraAction extraAction}) async {
     if (hasValue(ite)) {
       for (RDWorkItem workItem in ite) {
         await _printWorkItem
           (workItem, chk, extraCol: extraCol, wiMetaRepo: wiMetaRepo);
+        if (extraRow != null) {
+          await extraRow(workItem);
+        }
       }
+      _p.writeln();
+      _p.write(r'    ').dim(r'| ')
+          .write(r"* Below 'In progress'").dim(r' | ')
+          .write(r"** Below 'Completed'").dim(r' | ')
+          .bold(r'*').write(r'/').bold(r'**').write(r" No owner").dim(r' | ')
+          .write(r"+ Expedite").dim(r' | ')
+          .red().inverted(r'B').write(r' Blocked').dim(r' | ')
+          .green().inverted(r'R').write(r' RTP').dim(r' | ')
+          .blink().bold().red('Top priority').dim(r' | ')
+          .writeln();
       _p.writeln('Count: ${ite.length}');
+      if (extraAction != null) {
+        await extraAction(ite);
+      }
     } else {
       _p.writeln(r'No work item available!');
     }
@@ -310,7 +338,8 @@ class WorkItemsCommands extends UtilOptionCommand {
     _p.reset();
 
     if (hasValue(workItem.tags)) {
-      _p.write(r' ');
+      _p.writeln();
+      _p.write(r'     ');
       new List.from(workItem.tags)
         ..sort()
         ..forEach((String tag) {
@@ -400,6 +429,9 @@ class WorkItemsCommands extends UtilOptionCommand {
               '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel'));
 
       String action = alreadyPersisted ? () {
+        _p.blue()
+            .dim('   - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
+            .writeln();
         _printMap(map, _wimeta1);
         _printMap(map, _wimeta2);
         _printMap(map, _wimeta3);
@@ -449,7 +481,8 @@ class WorkItemsCommands extends UtilOptionCommand {
     prompts.forEach((String prompt) {
       String currentValue = map[prompt];
       currentValue ??= r'';
-      String value = askSync(new Question('  ${prompt}:', defaultsTo: currentValue));
+      String value = askSync(
+          new Question('  ${prompt}:', defaultsTo: currentValue));
       _p.up('                                                              \r');
       if (value != null && value.length > 0 && value
           .trim()
@@ -466,6 +499,9 @@ class WorkItemsCommands extends UtilOptionCommand {
   void _printWimeta(RepositorySync repo, String wiCode) {
     PersistedData pData = repo.get(wiCode);
     if (pData != null) {
+      _p.blue()
+          .dim('   - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
+          .writeln();
       _printMap(pData.data, _wimeta1);
       _printMap(pData.data, _wimeta2);
       _printMap(pData.data, _wimeta3);
@@ -482,7 +518,7 @@ class WorkItemsCommands extends UtilOptionCommand {
       }
     });
     if (sb.length > 0) {
-      _p.yellow(r'   ==>').write(sb.toString()).writeln();
+      _p.blue().dim(r'   ==>').write(sb.toString()).writeln();
     }
   }
 }
@@ -507,6 +543,27 @@ class _PRankColumnHandler {
     if (pRank < 10) p.write(r' ');
     p.write(pRank);
     p.write(r' ');
+  }
+
+}
+
+class _MailExtraAction {
+
+  String _subject;
+  Mailer _mailer;
+
+  _MailExtraAction(this._subject) {
+    _mailer = new Mailer.fromMap(cfgValue(r'mailer-1'));
+  }
+
+  Future mail(Iterable<RDWorkItem> workItems) {
+    if (askSync(new Question.confirm(r'Send list by email:'))) {
+      String html = formatSimpleWIHtmlList(workItems);
+      Message message = new Message(_subject, html)
+        ..recipients = ['${platformUser}@emergya.com'];
+      return _mailer.send(message);
+    }
+    return new Future.value(null);
   }
 
 }
