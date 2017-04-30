@@ -13,6 +13,11 @@ class BrowserScrumHttpClient implements ScrumHttpClient {
     return null;
   }
 
+  Future<Map<String, dynamic>> post(String part, String payload) {
+    // TODO
+    return null;
+  }
+
   String handleError(dynamic error) {
     if (error is ProgressEvent) {
       ProgressEvent pe = error as ProgressEvent;

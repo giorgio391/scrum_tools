@@ -390,6 +390,30 @@ class RDProject extends RDEntity {
   }
 }
 
+class RDMilestone extends RDEntity {
+  String _notes;
+  DateTime _targetDate, _creationDate;
+  String _name;
+  String _formattedID;
+
+  RDMilestone.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
+    _name = map[r'Name'];
+    _notes = map[r'Notes'];
+    _formattedID = map[r'FormattedID'];
+    _creationDate = DateTime.parse(map[r'CreationDate']);
+    if (map[r'TargetDate'] != null) {
+      _targetDate = DateTime.parse(map[r'TargetDate']);
+    }
+  }
+
+  String get name => _name;
+  DateTime get creationDate => _creationDate;
+  String get notes => _notes;
+  DateTime get targetDate => _targetDate;
+  String get formattedID => _formattedID;
+
+}
+
 /// Objects of this class represents Rallydev users.
 class RDUser extends RDEntity {
 
@@ -469,6 +493,8 @@ abstract class RDWorkItem extends RDEntity {
 
   String get notes => _notes;
 
+  String get ref;
+
   RDWorkItem._internalFromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
     _formattedID = map[r'FormattedID'];
@@ -534,6 +560,9 @@ class RDDefect extends RDWorkItem {
 
   RDSeverity get severity => _severity;
 
+  @override
+  String get ref => '/defect/${ID}';
+
   RDDefect.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
     _resolution = map[r'Resolution'];
     _state = RDState.parse(map[r'State']);
@@ -554,6 +583,9 @@ class RDHierarchicalRequirement extends RDWorkItem {
 
   int get predecessorsCount => _predecessorsCount;
 
+  @override
+  String get ref => '/hierarchicalrequirement/${ID}';
+
   RDHierarchicalRequirement.fromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
     _hasParent = map[r'HasParent'];
@@ -564,10 +596,12 @@ class RDHierarchicalRequirement extends RDWorkItem {
 
 class RDPortfolioItem extends RDWorkItem {
 
+  @override
+  String get ref => '/portfolio/${ID}';
+
   RDPortfolioItem.fromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
   }
-
 }
 
 void main(List<String> args) {

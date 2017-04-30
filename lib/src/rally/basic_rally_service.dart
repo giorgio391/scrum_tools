@@ -519,6 +519,61 @@ class BasicRallyService {
   Future<Iterable<RDWorkItem>> getUAT2PRODeploymentPending() =>
       _queryWorkItemsSortByCode(_uat2proDeploymentPendingQuery, true);
 
+  Future<Map<String, dynamic>> _operation(String operation,
+      Map<String, dynamic> data) {
+    Completer<Map<String, dynamic>> completer = new Completer<
+        Map<String, dynamic>>();
+    String json = JSON.encode(data);
+    _httpClient.post(operation, json).then((
+        Map<String, dynamic> result) {
+      if (!hasValue(result))
+        completer.completeError(
+            r'Empty result when a map was expected!');
+      else if (result.length > 1)
+        completer.completeError(
+            r'One entry value map expected!');
+      else {
+        result.forEach((String key, dynamic data) {
+          Map<String, dynamic> map = data;
+          if (hasValue(map[r'Errors'])) {
+            completer.completeError({r'Rally API errors': map[r'Errors']});
+          } else {
+            Map<String, dynamic> objectMap = map[r'Object'];
+            completer.complete(objectMap);
+          }
+        });
+      }
+    });
+    return completer.future;
+  }
+
+  Future<RDMilestone> createMilestone(String name, {DateTime targetDate,
+    Iterable<RDWorkItem> artifacts, String notes}) {
+    DateTime date = targetDate == null ? new DateTime.now() : targetDate;
+    Map<String, dynamic> data = {
+      r'Milestone': {
+        r'TargetProject': {r'_ref': '/project/${projectId}'},
+        r'Name': name,
+        r'TargetDate': '${date.toIso8601String()}'
+      }
+    };
+    if (hasValue(artifacts)) {
+      List<Map<String, String>> refs = [];
+      artifacts.forEach((RDWorkItem workItem) {
+        refs.add({r'_ref': workItem.ref});
+      });
+      data[r'Milestone'][r'Artifacts'] = refs;
+    }
+    if (hasValue(notes)) {
+      data[r'Milestone'][r'Notes'] = notes;
+    }
+    Completer<RDMilestone> completer = new Completer<RDMilestone>();
+    _operation(r'/milestone/create', data).then((Map<String, dynamic> map) {
+      completer.complete(new RDMilestone.fromMap(map));
+    });
+    return completer.future;
+  }
+
 }
 
 bool validWorkItemCodePattern(String code) {

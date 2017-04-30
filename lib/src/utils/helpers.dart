@@ -65,6 +65,8 @@ abstract class ScrumHttpClient {
 
   Future<String> getString(String url);
 
+  Future<Map<String, dynamic>> post(String part, String payload);
+
   String handleError(dynamic error);
 
   void close({bool force});

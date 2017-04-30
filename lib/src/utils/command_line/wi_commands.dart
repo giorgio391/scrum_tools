@@ -559,8 +559,9 @@ class _MailExtraAction {
   Future mail(Iterable<RDWorkItem> workItems) {
     if (askSync(new Question.confirm(r'Send list by email:'))) {
       String html = formatSimpleWIHtmlList(workItems);
+      String recipient = '${platformUser}@emergya.com';
       Message message = new Message(_subject, html)
-        ..recipients = ['${platformUser}@emergya.com'];
+        ..recipients = [recipient];
       return _mailer.send(message);
     }
     return new Future.value(null);

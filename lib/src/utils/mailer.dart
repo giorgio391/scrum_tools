@@ -79,7 +79,11 @@ class Mailer {
     if (hasValue(_from)) message.from = _from;
     Completer completer = new Completer();
     _transport.send(message).then((_) {
-      _log.info('<${message.subject}>. Sent OK!');
+      if (!hasValue(message.recipients) || message.recipients.length > 1)
+        _log.info('<${message.subject}>. Sent OK!');
+      else
+        _log.info(
+            '<${message.subject}> to <${message.recipients[0]}>. Sent OK!');
       completer.complete();
     }).catchError((error) {
       _log.severe(
