@@ -15,33 +15,33 @@ RegExp _5DRegExp = new RegExp(r'^[0-9][0-9][0-9][0-9][0-9]$');
 
 class BasicRallyService {
 
-  static const String _defect = defectUrlPart;
-  static const String _us = usUrlPart;
+  static const String _defect = RDDefect.RDTypeKey;
+  static const String _us = RDHierarchicalRequirement.RDTypeKey;
 
   //static const int _qaDeployerID = 55504055635;
 
   static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
 
-  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20nextweek))&pagesize=200&fetch=true';
+  static const String _devTeamPendingQuery = '(((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.StartDate%20<=%20nextweek))&pagesize=200&fetch=true';
 
-  static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"PRE"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  static const String _uat2preDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
+  static const String _uat2preDeploymentPendingQuery = '((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRE"))&pagesize=200&fetch=true';
 
-  static const String _uat2proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
+  static const String _uat2proDeploymentPendingQuery = '((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(Tags.Name%20=%20"UAT"))%20AND%20(Tags.Name%20!=%20"PRO"))&pagesize=200&fetch=true';
 
-  static const String _preDeploymentPendingQuery = '((((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
+  static const String _preDeploymentPendingQuery = '((((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"PRE"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))%20AND%20(Expedite%20=%20true))&pagesize=200&fetch=true';
 
-  static const String _uatDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"UAT"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))&pagesize=200&fetch=true';
+  static const String _uatDeploymentPendingQuery = '(((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>%20${_limitDate}))%20AND%20(ScheduleState%20>=%20"Completed"))%20AND%20(Tags.Name%20!=%20"UAT"))%20AND%20(Tags.Name%20!=%20"NOT%20TO%20DEPLOY"))&pagesize=200&fetch=true';
 
-  static final String _defectIterationMissingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Priority%20=%20"${RDPriority
+  static final String _defectIterationMissingQuery = '((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Priority%20=%20"${RDPriority
       .MAX_PRIORITY.name.replaceAll(
       r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
-  static final String _usIterationMissingQuery = '((((Project.ObjectID%20=%20${projectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Risk%20=%20"${RDRisk
+  static final String _usIterationMissingQuery = '((((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(LastUpdateDate%20>=%20${_limitDate}))%20AND%20(Risk%20=%20"${RDRisk
       .MAX_RISK.name.replaceAll(
       r' ', r'%20')}"))%20AND%20(Iteration%20=%20null))&pagesize=20&fetch=true';
 
-  int get defaultProjectID => projectId;
+  int get defaultProjectID => gordonProjectId;
 
   String _pathRoot;
 
@@ -78,11 +78,11 @@ class BasicRallyService {
   }
 
   String _byIterationNameQuery(String iterationName) =>
-      '((Project.ObjectID%20=%20${projectId})%20AND%20(Iteration.Name%20=%20"${iterationName
+      '((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(Iteration.Name%20=%20"${iterationName
           .replaceAll(r' ', '%20')}"))&pagesize=250&fetch=true';
 
   String _pendingByIterationNameQuery(String iterationName) =>
-      '(((Project.ObjectID%20=%20${projectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.Name%20=%20"${iterationName
+      '(((Project.ObjectID%20=%20${gordonProjectId})%20AND%20(ScheduleState%20<%20"Accepted"))%20AND%20(Iteration.Name%20=%20"${iterationName
           .replaceAll(r' ', '%20')}"))&pagesize=200&fetch=true';
 
   Future<RDIteration> _iterationRetriever(int key) {
@@ -278,21 +278,25 @@ class BasicRallyService {
   }
 
   Stream<RDWorkItem> getWorkItems(Iterable<String> wiCodes) {
-    if (!hasValue(wiCodes)) return null;
-    Set<String> toRetrieve = new Set.from(wiCodes);
-    int counter = toRetrieve.length;
     StreamController<RDWorkItem> streamController = new StreamController<
         RDWorkItem>();
-    toRetrieve.forEach((String wiCode) {
-      getWorkItem(wiCode).then((RDWorkItem workItem) {
-        streamController.add(workItem);
-      }).catchError((error) {
-        streamController.addError(error);
-      }).whenComplete(() {
-        counter--;
-        if (counter < 1) streamController.close();
+    if (!hasValue(wiCodes)) {
+      streamController.addError(r'A list of work item codes must be provided!');
+      streamController.close();
+    } else {
+      Set<String> toRetrieve = new Set.from(wiCodes);
+      int counter = toRetrieve.length;
+      toRetrieve.forEach((String wiCode) {
+        getWorkItem(wiCode).then((RDWorkItem workItem) {
+          streamController.add(workItem);
+        }).catchError((error) {
+          streamController.addError(error);
+        }).whenComplete(() {
+          counter--;
+          if (counter < 1) streamController.close();
+        });
       });
-    });
+    }
     return streamController.stream;
   }
 
@@ -328,7 +332,7 @@ class BasicRallyService {
     if (_currentIteration == null) {
       Completer<RDIteration> completer = new Completer<RDIteration>();
       _genericIDRetriever(r'iteration',
-          '(Project.ObjectID = ${projectId}) AND ((StartDate <= today) AND (EndDate >= today))')
+          '(Project.ObjectID = ${gordonProjectId}) AND ((StartDate <= today) AND (EndDate >= today))')
           .then((int id) {
         getIteration(id).then((RDIteration iteration) {
           _currentIteration = iteration;
@@ -524,8 +528,7 @@ class BasicRallyService {
     Completer<Map<String, dynamic>> completer = new Completer<
         Map<String, dynamic>>();
     String json = JSON.encode(data);
-    _httpClient.post(operation, json).then((
-        Map<String, dynamic> result) {
+    _httpClient.post(operation, json).then((Map<String, dynamic> result) {
       if (!hasValue(result))
         completer.completeError(
             r'Empty result when a map was expected!');
@@ -552,7 +555,7 @@ class BasicRallyService {
     DateTime date = targetDate == null ? new DateTime.now() : targetDate;
     Map<String, dynamic> data = {
       r'Milestone': {
-        r'TargetProject': {r'_ref': '/project/${projectId}'},
+        r'TargetProject': {r'_ref': '/project/${gordonProjectId}'},
         r'Name': name,
         r'TargetDate': '${date.toIso8601String()}'
       }
@@ -574,6 +577,65 @@ class BasicRallyService {
     return completer.future;
   }
 
+  Future<RDWorkItem> addTag(RDWorkItem workItem, RDTag tag) {
+    Completer<RDWorkItem> completer = new Completer<RDWorkItem>();
+    if (workItem == null || tag == null) {
+      completer.completeError(r'A work item and a tag must be provided!');
+    } else {
+      if (hasValue(workItem.tags) && workItem.tags.contains(tag)) {
+        completer.complete(workItem);
+      } else {
+        List<RDTag> tags = hasValue(workItem.tags) ? new List<RDTag>.from(
+            workItem.tags) : new List<RDTag>();
+        tags.add(tag);
+        tags.sort();
+        List<Map<String, String>> list = [];
+        tags.forEach((RDTag t) {
+          list.add({'_ref': t.ref});
+        });
+        Map data = {
+          workItem.typeName: {
+            r'Tags': list
+          }
+        };
+        _operation('/${workItem.typeKey}/${workItem.ID}', data).then((
+            Map<String, dynamic> map) {
+          completer.complete(workItem is RDDefect ? new RDDefect.fromMap(map) :
+          workItem is RDHierarchicalRequirement ? new RDHierarchicalRequirement
+              .fromMap(map) :
+          new RDPortfolioItem.fromMap(map));
+        });
+      }
+    }
+    return completer.future;
+  }
+
+  Stream<RDWorkItem> addTagToWorkItems(Iterable<RDWorkItem> workItems,
+      RDTag tag) {
+    StreamController<RDWorkItem> streamController = new StreamController<
+        RDWorkItem>();
+    if (!hasValue(workItems) || tag == null) {
+      streamController.addError(
+          r'A list with work items and a tag must be supplied!');
+      streamController.close();
+    } else {
+      Set<RDWorkItem> toTag = new Set.from(workItems);
+      int counter = toTag.length;
+      StreamController<RDWorkItem> streamController = new StreamController<
+          RDWorkItem>();
+      toTag.forEach((RDWorkItem workItem) {
+        addTag(workItem, tag).then((RDWorkItem workItem) {
+          streamController.add(workItem);
+        }).catchError((error) {
+          streamController.addError(error);
+        }).whenComplete(() {
+          counter--;
+          if (counter < 1) streamController.close();
+        });
+      });
+      return streamController.stream;
+    }
+  }
 }
 
 bool validWorkItemCodePattern(String code) {

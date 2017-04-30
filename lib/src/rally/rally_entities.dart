@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'package:scrum_tools/src/rally/const.dart';
 
 int _idFromUrl(String url) {
   return int.parse(url.substring(url.lastIndexOf(r'/') + 1));
@@ -265,17 +266,16 @@ class RDState implements Comparable<RDState> {
 /// This is the common type for any Rallydev entity.
 abstract class RDEntity {
 
-  int _objectID;
+  final int _objectID;
 
   int get objectID => _objectID;
 
   int get ID => _objectID;
 
-  RDEntity._internal(this._objectID);
+  const RDEntity._internal(this._objectID);
 
-  RDEntity._internalFromMap(Map<String, dynamic> map) {
-    _objectID = map[r'ObjectID'];
-  }
+  RDEntity._internalFromMap(Map<String, dynamic> map)
+      : this._internal(map[r'ObjectID']);
 
   operator ==(RDEntity entity) =>
       entity != null && entity._objectID == _objectID &&
@@ -295,11 +295,15 @@ class RDRevision extends RDEntity {
   RDUser _user;
 
   DateTime get creationDate => _creationDate;
+
   String get description => _description;
+
   int get revisionNumber => _revisionNumber;
+
   RDUser get user => _user;
 
   RDRevision(int id) : super._internal(id);
+
   RDRevision.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
     _creationDate = _parseDate(map[r'CreationDate']);
     _description = map[r'Description'];
@@ -375,14 +379,26 @@ class RDIteration extends RDEntity implements Comparable<RDIteration> {
   }
 }
 
-
 /// Objects of this class represents Rallydev projects.
 class RDProject extends RDEntity {
-  String _name;
+
+  static const String RDTypeKey = r'project';
+
+  static const RDProject Gordon = const RDProject._internal(
+      gordonProjectId, r'Gordon');
+
+  final String _name;
+
+  const RDProject._internal(int id, this._name) : super._internal(id);
+
+  factory RDProject.DTO(int id, String name) {
+    if (id == Gordon.ID) return Gordon;
+    return new RDProject._internal(id, name);
+  }
 
   String get name => _name;
 
-  RDProject.DTO(int id, this._name) : super._internal(id);
+  String get ref => '/${RDTypeKey}/${ID}';
 
   @override
   String toString() {
@@ -391,6 +407,9 @@ class RDProject extends RDEntity {
 }
 
 class RDMilestone extends RDEntity {
+
+  static const String RDTypeKey = r'milestone';
+
   String _notes;
   DateTime _targetDate, _creationDate;
   String _name;
@@ -407,10 +426,67 @@ class RDMilestone extends RDEntity {
   }
 
   String get name => _name;
+
   DateTime get creationDate => _creationDate;
+
   String get notes => _notes;
+
   DateTime get targetDate => _targetDate;
+
   String get formattedID => _formattedID;
+
+  String get ref => '/${RDTypeKey}/${ID}';
+
+}
+
+class RDTag extends RDEntity implements Comparable<RDTag> {
+
+  static const String RDTypeKey = r'tag';
+
+  static const UAT = const RDTag._internal(55550759656, r'UAT', 1);
+  static const PRE = const RDTag._internal(55550758971, r'PRE', 2);
+  static const PRO = const RDTag._internal(55550759466, r'PRO', 3);
+  static const NOT_TO_DEPLOY = const RDTag._internal(
+      98533801960, r'NOT TO DEPLOY', 4);
+
+  final String _name;
+  final int _order;
+
+  const RDTag._internal(int id, this._name, this._order) : super._internal(id);
+
+  factory RDTag.fromMap(Map<String, dynamic> map) {
+    int id = _idFromUrl(map[r'_ref']);
+    if (id == UAT.ID)
+      return UAT;
+    else if (id == PRE.ID)
+      return PRE;
+    else if (id == PRO.ID)
+      return PRO;
+    else if (id == NOT_TO_DEPLOY.ID) return NOT_TO_DEPLOY;
+    RDTag tag = new RDTag._internal(id, map[r'Name'], 10);
+    return tag;
+  }
+
+  String get name => _name;
+
+  String get ref => '/${RDTypeKey}/${ID}';
+
+  operator >(RDTag t) => compareTo(t) > 0;
+
+  operator <(RDTag t) => compareTo(t) < 0;
+
+  operator >=(RDTag t) => compareTo(t) >= 0;
+
+  operator <=(RDTag t) => compareTo(t) <= 0;
+
+  @override
+  int compareTo(RDTag other) {
+    if (_order == other._order) return _name.compareTo(other._name);
+    return _order - other._order;
+  }
+
+  @override
+  String toString() => name;
 
 }
 
@@ -463,7 +539,7 @@ abstract class RDWorkItem extends RDEntity {
 
   DateTime get lastUpdateDate => _lastUpdateDate;
 
-  Set<String> _tags;
+  Set<RDTag> _tags;
 
   String get formattedID => _formattedID;
 
@@ -477,7 +553,7 @@ abstract class RDWorkItem extends RDEntity {
 
   String get blockedReason => _blockedReason;
 
-  Set<String> get tags => _tags;
+  Set<RDTag> get tags => _tags;
 
   double get planEstimate => _planEstimate;
 
@@ -510,17 +586,12 @@ abstract class RDWorkItem extends RDEntity {
     _notes = map[r'Notes'];
     List myTags = map[r'Tags'][r'_tagsNameArray'];
     if (myTags != null && myTags.length > 0) {
-      _tags = new SplayTreeSet<String>((String v1, String v2) {
-        if ((v1 != v2) && (v1 == r'UAT' || v2 == r'UAT')) {
-          if (v1 == r'UAT') return -1000;
-          if (v2 == r'UAT') return 1000;
-        }
-        return v1.compareTo(v2);
-      });
+      _tags = new SplayTreeSet<RDTag>();
       myTags.forEach((value) {
-        String s = value[r'Name'];
-        if (s == r'UAT' || s == r'PRE' || s == r'PRO') _isDeployed = true;
-        _tags.add(s);
+        RDTag tag = new RDTag.fromMap(value);
+        if (tag == RDTag.UAT || tag == RDTag.PRE || tag == RDTag.PRO)
+          _isDeployed = true;
+        _tags.add(tag);
       });
     }
     if (map[r'Owner'] != null) {
@@ -529,7 +600,8 @@ abstract class RDWorkItem extends RDEntity {
     }
     if (map[r'Project'] != null) {
       _project = new RDProject.DTO(
-          _idFromUrl(map[r'Project'][r'_ref']), map[r'Project'][r'_refObjectName']);
+          _idFromUrl(map[r'Project'][r'_ref']),
+          map[r'Project'][r'_refObjectName']);
     }
     if (map[r'Iteration'] != null) {
       _iteration = new RDIteration._internal(
@@ -540,19 +612,32 @@ abstract class RDWorkItem extends RDEntity {
     _expedite = map[r'Expedite'];
   }
 
+  String get typeKey;
+
+  String get typeName;
+
   @override
   String toString() {
     return "${super.toString()} - $formattedID";
   }
-
 }
 
 class RDDefect extends RDWorkItem {
+
+  static const String RDTypeKey = r'defect';
+  static const String RDTypeName = r'Defect';
 
   RDPriority _priority;
   RDSeverity _severity;
   RDState _state;
   String _resolution;
+
+  RDDefect.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
+    _resolution = map[r'Resolution'];
+    _state = RDState.parse(map[r'State']);
+    _priority = RDPriority.parse(map[r'Priority']);
+    _severity = RDSeverity.parse(map[r'Severity']);
+  }
 
   String get resolution => _resolution;
 
@@ -561,21 +646,31 @@ class RDDefect extends RDWorkItem {
   RDSeverity get severity => _severity;
 
   @override
-  String get ref => '/defect/${ID}';
+  String get ref => '/${RDTypeKey}/${ID}';
 
-  RDDefect.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
-    _resolution = map[r'Resolution'];
-    _state = RDState.parse(map[r'State']);
-    _priority = RDPriority.parse(map[r'Priority']);
-    _severity = RDSeverity.parse(map[r'Severity']);
-  }
+  @override
+  String get typeKey => RDTypeKey;
+
+  @override
+  String get typeName => RDTypeName;
+
 }
 
 class RDHierarchicalRequirement extends RDWorkItem {
 
+  static const String RDTypeKey = r'hierarchicalrequirement';
+  static const String RDTypeName = r'HierarchicalRequirement';
+
   RDRisk _risk;
   bool _hasParent;
   int _predecessorsCount = 0;
+
+  RDHierarchicalRequirement.fromMap(Map<String, dynamic> map)
+      : super._internalFromMap(map) {
+    _hasParent = map[r'HasParent'];
+    _risk = RDRisk.parse(map[r'c_Risk']);
+    _predecessorsCount = map[r'Predecessors'][r'Count'];
+  }
 
   RDRisk get risk => _risk;
 
@@ -584,33 +679,29 @@ class RDHierarchicalRequirement extends RDWorkItem {
   int get predecessorsCount => _predecessorsCount;
 
   @override
-  String get ref => '/hierarchicalrequirement/${ID}';
+  String get ref => '/${RDTypeKey}/${ID}';
 
-  RDHierarchicalRequirement.fromMap(Map<String, dynamic> map)
-      : super._internalFromMap(map) {
-    _hasParent = map[r'HasParent'];
-    _risk = RDRisk.parse(map[r'c_Risk']);
-    _predecessorsCount = map[r'Predecessors'][r'Count'];
-  }
+  @override
+  String get typeKey => RDTypeKey;
+  @override
+  String get typeName => RDTypeName;
 }
 
 class RDPortfolioItem extends RDWorkItem {
 
-  @override
-  String get ref => '/portfolio/${ID}';
+  static const String RDTypeKey = r'portfolio';
+  static const String RDTypeName = r'Portfolio';
 
   RDPortfolioItem.fromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
   }
+
+  @override
+  String get ref => '/${RDTypeKey}/${ID}';
+
+  @override
+  String get typeKey => RDTypeKey;
+  @override
+  String get typeName => RDTypeName;
 }
 
-void main(List<String> args) {
-  // To test
-  RDIteration ite1 = new RDIteration._internal(555, "Ite1");
-  RDIteration ite2 = new RDIteration._internal(555, "Ite2");
-
-  RDProject pro1 = new RDProject.DTO(555, "Pro1");
-
-  assert(ite1 == ite2);
-  assert(ite1 != pro1);
-}

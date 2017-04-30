@@ -189,12 +189,12 @@ class WorkItemValidator {
     bool tagNOT_TO_DEPLOY = false;
 
     if (workItem.tags != null) {
-      workItem.tags.forEach((String tag) {
-        tagUAT = tagUAT || "UAT" == tag.toUpperCase();
-        tagPRE = tagPRE || "PRE" == tag.toUpperCase();
-        tagPRO = tagPRO || "PRO" == tag.toUpperCase();
+      workItem.tags.forEach((RDTag tag) {
+        tagUAT = tagUAT || tag == RDTag.UAT;
+        tagPRE = tagPRE || tag == RDTag.PRE;
+        tagPRO = tagPRO || tag == RDTag.PRO;
         tagNOT_TO_DEPLOY =
-            tagNOT_TO_DEPLOY || "NOT TO DEPLOY" == tag.toUpperCase();
+            tagNOT_TO_DEPLOY || tag == RDTag.NOT_TO_DEPLOY;
       });
     }
 
@@ -385,20 +385,15 @@ class WorkItemValidator {
       workItem.owner != null && workItem.owner == qaDeployer;
 
   static bool taggedAsDeployed(RDWorkItem workItem) {
-    bool tagUAT = false;
-    bool tagPRE = false;
-    bool tagPRO = false;
-    bool tagNOT_TO_DEPLOY = false;
 
     if (workItem.tags != null) {
-      workItem.tags.forEach((String tag) {
-        tagUAT = tagUAT || "UAT" == tag.toUpperCase();
-        tagPRE = tagPRE || "PRE" == tag.toUpperCase();
-        tagPRO = tagPRO || "PRO" == tag.toUpperCase();
-        tagNOT_TO_DEPLOY =
-            tagNOT_TO_DEPLOY || "NOT TO DEPLOY" == tag.toUpperCase();
-      });
+      for (RDTag tag in workItem.tags) {
+        if (tag == RDTag.UAT || tag == RDTag.PRE || tag == RDTag.PRO) {
+          return true;
+        }
+      }
     }
-    return tagUAT || tagPRE || tagPRO;
+
+    return false;
   }
 }
