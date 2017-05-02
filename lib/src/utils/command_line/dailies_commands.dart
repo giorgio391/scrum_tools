@@ -747,7 +747,7 @@ class _ConsolidatedDailyReportsDigester extends _DailyReportsDigester {
           myEntry = new _StandardDailyEntry()
           //.._entryKey = key
             .._rank = hasValue(entry.workItemCode) ? key : 'z$key'
-            .._notes = entry.notes
+            //.._notes = entry.notes
             .._statement = entry.statement
             .._workItemCode = entry.workItemCode;
           targetMap[key] = myEntry;
@@ -813,7 +813,7 @@ class _StandardDailyEntry {
   double _hours;
   String _workItemCode;
   String _statement;
-  String _notes;
+  //String _notes;
 
   bool get _hasWorkItem => hasValue(_workItemCode);
 

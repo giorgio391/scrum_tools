@@ -4,6 +4,11 @@
             <a href="https://rally1.rallydev.com/#/55308115013d/search?keywords={{workItem.formattedID}}"
                target="_blank">{{workItem.formattedID}}</a>
         </div>
+        <div *ngIf="workItem.portfolioItem != null" class="portfolio">
+            <div>{{workItem.portfolioItem.formattedID != null ? workItem.portfolioItem.formattedID :
+                ''}}:&nbsp;{{workItem.portfolioItem.name}}
+            </div>
+        </div>
         <div *ngIf="isDefect && workItem.priority != null" class="priority">
             <div [class.highlight-1]="workItem.priority.order==3" [class.highlight-2]="workItem.priority.order==4">
                 {{workItem.priority.name}}

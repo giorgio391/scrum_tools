@@ -221,6 +221,11 @@ class WorkItemValidator {
           new Issue(IssueLevel.IMPORTANT, r'INCOMPATIBLE-DEPLOYMENT-TAGS',
               "Tagged as 'NOT TO DEPLOY' while tagged as deployed."));
     }
+
+    if (workItem.inquiry && !tagNOT_TO_DEPLOY) {
+      issues.add(new Issue(IssueLevel.WARN, r'DEPLOYABLE-INQUIRY',
+          "Inquiry w/o 'NOT TO DEPLOY'."));
+    }
   }
 
   static void _checkExpedite(List<Issue> issues, RDWorkItem workItem) {
@@ -236,7 +241,7 @@ class WorkItemValidator {
 
   static void _checkEstimation(List<Issue> issues, RDWorkItem workItem) {
     if (workItem.scheduleState > RDScheduleState.UNDEFINED &&
-        workItem.planEstimate == null) {
+        workItem.planEstimate == null && !workItem.inquiry) {
       issues.add(new Issue(IssueLevel.IMPORTANT, r'MISSING-ESTIMATION',
           "Does not have any plan estimate while the schedule state is [${workItem
               .scheduleState.abbr}]."));
@@ -324,14 +329,14 @@ class WorkItemValidator {
               .name}] is not the current one [${currentIteration.name}]."));
     }
     if (workItem.iteration != null && workItem.iteration == currentIteration &&
-        workItem.planEstimate == null && !workItem.blocked) {
+        workItem.planEstimate == null && !workItem.blocked && !workItem.inquiry) {
       issues.add(
           new Issue(
               IssueLevel.IMPORTANT, r'CURRENT-ITERATION-WITHOUT-ESTIMATION',
               "Workitem scheduled for current iteration [${workItem.iteration
                   .name}] while not estimated yet."));
     } else if (workItem.iteration != null && workItem.planEstimate == null &&
-        !workItem.blocked) {
+        !workItem.blocked && !workItem.inquiry) {
       issues.add(new Issue(IssueLevel.WARN, r'SCHEDULED-WITHOUT-ESTIMATION',
           "Workitem scheduled for [${workItem.iteration
               .name}] while not estimated yet."));

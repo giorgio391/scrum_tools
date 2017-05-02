@@ -126,6 +126,10 @@ class DailyReporter {
       _rallyService.getWorkItem(workItemCode).then((RDWorkItem workItem) {
         _currentWorkItem = workItem;
         _eventBus.sendWorkItemMessage(workItem);
+        if (workItem.inquiry)
+          dailyForm.model.process = Process.INQUIRIES;
+        else if (workItem.operation)
+          dailyForm.model.process = Process.OPERATIONS;
       }); //.catchError((error) {
       // TODO
       //});

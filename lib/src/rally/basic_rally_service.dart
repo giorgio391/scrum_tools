@@ -633,8 +633,8 @@ class BasicRallyService {
           if (counter < 1) streamController.close();
         });
       });
-      return streamController.stream;
     }
+    return streamController.stream;
   }
 }
 

@@ -91,6 +91,13 @@ $psnow-green-color: #00B388;
         }
       }
     }
+    .portfolio {
+      @extend .label-badge-container;
+      div {
+        @extend .label-badge;
+        color: darkorange;
+      }
+    }
     .iteration {
       @extend .label-badge-container;
       div {

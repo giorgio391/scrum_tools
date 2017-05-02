@@ -95,6 +95,9 @@
       @include flex(1, 1, 0);
       font-style: italic;
       color: #868686;
+      &.highlighted {
+        color: darkorange;
+      }
     }
     .environments {
       @include flexbox();

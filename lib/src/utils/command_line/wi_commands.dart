@@ -98,7 +98,8 @@ class WorkItemsCommands extends UtilOptionCommand {
         rallyService.getDevTeamPendingInIteration(iterationName).then((
             Iterable<RDWorkItem> ite) {
           _printIterableAndClose(ite, chk,
-              extraAction: new _MailExtraAction('Pending ${iterationName}').mail);
+              extraAction: new _MailExtraAction('Pending ${iterationName}')
+                  .mail);
         });
       });
     } else if (action.startsWith(r'rtd')) {
@@ -235,7 +236,7 @@ class WorkItemsCommands extends UtilOptionCommand {
         }
       }
       _p.writeln();
-      _p.write(r'    ').dim(r'| ')
+      _p.write(r'  ').dim(r'| ')
           .write(r"* Below 'In progress'").dim(r' | ')
           .write(r"** Below 'Completed'").dim(r' | ')
           .bold(r'*').write(r'/').bold(r'**').write(r" No owner").dim(r' | ')
@@ -243,7 +244,9 @@ class WorkItemsCommands extends UtilOptionCommand {
           .red().inverted(r'B').write(r' Blocked').dim(r' | ')
           .green().inverted(r'R').write(r' RTP').dim(r' | ')
           .blink().bold().red('Top priority').dim(r' | ')
-          .writeln();
+          .bold().yellow().inverted(r'I').write(r'nquiry/')
+          .bold().yellow().inverted(r'O').write(r'peration')
+          .writeln(r' |');
       _p.writeln('Count: ${ite.length}');
       if (extraAction != null) {
         await extraAction(ite);
@@ -332,10 +335,17 @@ class WorkItemsCommands extends UtilOptionCommand {
       _p.bold();
     else if (workItem.planEstimate != null && workItem.planEstimate < 2.0)
       _p.cyan();
-    else
-    if (workItem.planEstimate == null && !workItem.blocked) _p.bold().red();
+    else if (workItem.planEstimate == null && !workItem.blocked &&
+        !workItem.inquiry) _p.bold().red();
     _p.write(formatDouble(workItem.planEstimate));
     _p.reset();
+    _p.write(r' ');
+    if (workItem.inquiry) {
+      _p.bold().yellow().inverted(r'I');
+    }
+    if (workItem.operation) {
+      _p.bold().yellow().inverted(r'O');
+    }
 
     if (hasValue(workItem.tags)) {
       _p.writeln();

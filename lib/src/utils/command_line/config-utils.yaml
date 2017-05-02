@@ -61,6 +61,3 @@ spread_daily:
       ~extends: spread_daily/conf-3/mail
       recipients: jmurcia@emergya.com
       #cc_recipients: jmurcia@emergya.com
-
-
-

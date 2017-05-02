@@ -406,7 +406,7 @@ class RDProject extends RDEntity {
   }
 }
 
-class RDMilestone extends RDEntity {
+class RDMilestone extends RDEntity implements Comparable<RDMilestone> {
 
   static const String RDTypeKey = r'milestone';
 
@@ -425,6 +425,8 @@ class RDMilestone extends RDEntity {
     }
   }
 
+  RDMilestone.DTO(int id, this._name, this._targetDate) : super._internal(id);
+
   String get name => _name;
 
   DateTime get creationDate => _creationDate;
@@ -436,6 +438,30 @@ class RDMilestone extends RDEntity {
   String get formattedID => _formattedID;
 
   String get ref => '/${RDTypeKey}/${ID}';
+
+  operator >(RDMilestone other) {
+    if (_targetDate != null && other._targetDate != null) {
+      return _targetDate.isAfter(other._targetDate);
+    }
+    return _name.compareTo(other._name) > 0;
+  }
+
+  operator <(RDMilestone other) {
+    if (_targetDate != null && other._targetDate != null) {
+      return _targetDate.isBefore(other._targetDate);
+    }
+    return _name.compareTo(other._name) < 0;
+  }
+
+  operator >=(RDMilestone other) => objectID == other.objectID || this > other;
+
+  operator <=(RDMilestone other) => objectID == other.objectID || this < other;
+
+  int compareTo(RDMilestone other) {
+    if (this < other) return -1;
+    if (this > other) return 1;
+    return 0;
+  }
 
 }
 
@@ -454,8 +480,7 @@ class RDTag extends RDEntity implements Comparable<RDTag> {
 
   const RDTag._internal(int id, this._name, this._order) : super._internal(id);
 
-  factory RDTag.fromMap(Map<String, dynamic> map) {
-    int id = _idFromUrl(map[r'_ref']);
+  factory RDTag.DTO(int id, String name) {
     if (id == UAT.ID)
       return UAT;
     else if (id == PRE.ID)
@@ -463,7 +488,7 @@ class RDTag extends RDEntity implements Comparable<RDTag> {
     else if (id == PRO.ID)
       return PRO;
     else if (id == NOT_TO_DEPLOY.ID) return NOT_TO_DEPLOY;
-    RDTag tag = new RDTag._internal(id, map[r'Name'], 10);
+    RDTag tag = new RDTag._internal(id, name, 10);
     return tag;
   }
 
@@ -518,7 +543,8 @@ class RDUser extends RDEntity {
 /// Base class for user stories and defect entities.abstract
 abstract class RDWorkItem extends RDEntity {
 
-  String _formattedID, _name, _blockedReason, _notes;
+  String _name;
+  String _formattedID, _blockedReason, _notes;
   bool _ready, _blocked;
   RDUser _owner;
   RDProject _project;
@@ -527,9 +553,12 @@ abstract class RDWorkItem extends RDEntity {
   bool _expedite;
   RDIteration _iteration;
   RDScheduleState _scheduleState;
+  RDPortfolioItem _portfolioItem;
   String _rank;
   bool _isDeployed;
   int _revisionHistoryID;
+  Set<RDTag> _tags;
+  Set<RDMilestone> _milestones;
 
   String get name => _name;
 
@@ -538,8 +567,6 @@ abstract class RDWorkItem extends RDEntity {
   DateTime get creationDate => _creationDate;
 
   DateTime get lastUpdateDate => _lastUpdateDate;
-
-  Set<RDTag> _tags;
 
   String get formattedID => _formattedID;
 
@@ -554,6 +581,8 @@ abstract class RDWorkItem extends RDEntity {
   String get blockedReason => _blockedReason;
 
   Set<RDTag> get tags => _tags;
+
+  Set<RDMilestone> get milestones => _milestones;
 
   double get planEstimate => _planEstimate;
 
@@ -570,6 +599,13 @@ abstract class RDWorkItem extends RDEntity {
   String get notes => _notes;
 
   String get ref;
+
+  RDPortfolioItem get portfolioItem => _portfolioItem;
+
+  bool get inquiry => RDPortfolioItem.INQUIRIES == _portfolioItem;
+  bool get operation => RDPortfolioItem.OPERATIONS == _portfolioItem;
+
+  RDWorkItem.DTO(int id, this._name, this._formattedID) : super._internal(id);
 
   RDWorkItem._internalFromMap(Map<String, dynamic> map)
       : super._internalFromMap(map) {
@@ -588,11 +624,26 @@ abstract class RDWorkItem extends RDEntity {
     if (myTags != null && myTags.length > 0) {
       _tags = new SplayTreeSet<RDTag>();
       myTags.forEach((value) {
-        RDTag tag = new RDTag.fromMap(value);
+        RDTag tag = new RDTag.DTO(_idFromUrl(value[r'_ref']), value[r'Name']);
         if (tag == RDTag.UAT || tag == RDTag.PRE || tag == RDTag.PRO)
           _isDeployed = true;
         _tags.add(tag);
       });
+    }
+    List myMilestones = map[r'Milestones'][r'_tagsNameArray'];
+    if (myMilestones != null && myMilestones.length > 0) {
+      _milestones = new SplayTreeSet<RDMilestone>();
+      myMilestones.forEach((value) {
+        RDMilestone milestone = new RDMilestone.DTO(
+            _idFromUrl(value[r'_ref']), value[r'Name'],
+            DateTime.parse(value[r'TargetDate']));
+        _milestones.add(milestone);
+      });
+    }
+    if (map[RDPortfolioItem.RDTypeName] != null) {
+      _portfolioItem = new RDPortfolioItem.DTO(
+          _idFromUrl(map[RDPortfolioItem.RDTypeName][r'_ref']),
+          map[RDPortfolioItem.RDTypeName][r'_refObjectName'], null);
     }
     if (map[r'Owner'] != null) {
       _owner = new RDUser.DTO(
@@ -683,17 +734,31 @@ class RDHierarchicalRequirement extends RDWorkItem {
 
   @override
   String get typeKey => RDTypeKey;
+
   @override
   String get typeName => RDTypeName;
 }
 
 class RDPortfolioItem extends RDWorkItem {
 
-  static const String RDTypeKey = r'portfolio';
-  static const String RDTypeName = r'Portfolio';
+  static final INQUIRIES = new RDPortfolioItem._internal(
+      95036827264, r'Inquiries', r'F45');
+
+  static final OPERATIONS = new RDPortfolioItem._internal(
+      110441207448, r'Operations', r'F48');
+
+  static const String RDTypeKey = r'portfolioitem/feature';
+  static const String RDTypeName = r'PortfolioItem';
+
+  RDPortfolioItem._internal(int id, String name, String formattedID)
+      : super.DTO(id, name, formattedID);
 
   RDPortfolioItem.fromMap(Map<String, dynamic> map)
-      : super._internalFromMap(map) {
+      : super._internalFromMap(map);
+
+  factory RDPortfolioItem.DTO(int id, String name, String formattedID) {
+    if (id == INQUIRIES.ID) return INQUIRIES;
+    return new RDPortfolioItem._internal(id, name, formattedID);
   }
 
   @override
@@ -701,7 +766,7 @@ class RDPortfolioItem extends RDWorkItem {
 
   @override
   String get typeKey => RDTypeKey;
+
   @override
   String get typeName => RDTypeName;
 }
-

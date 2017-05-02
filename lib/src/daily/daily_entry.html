@@ -22,7 +22,7 @@
         </div>
     </div>
     <div class="entry-row entry-row-2">
-        <div class="workItemName" title="Work item title.">{{workItemName}}</div>
+        <div class="workItemName" title="Work item title." [class.highlighted]="inquiry || operation">{{workItemName}}</div>
         <div class="environments" title="Affected environments.">
             <div *ngFor="let env of entry.environments">{{env}}</div>
         </div>
