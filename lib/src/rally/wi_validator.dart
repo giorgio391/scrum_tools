@@ -154,9 +154,11 @@ class WorkItemValidator {
       _checkExpedite(issues, workItem);
       _checkEstimation(issues, workItem);
       _checkOwner(issues, workItem);
+      _checkPortfolio(issues, workItem);
       Completer<Report> completer = new Completer<Report>();
       _checkScheduleAsync(issues, workItem).then((_) {
-        if (workItem is RDHierarchicalRequirement && workItem.predecessorsCount > 0) {
+        if (workItem is RDHierarchicalRequirement &&
+            workItem.predecessorsCount > 0) {
           _checkPredecessors(issues, workItem).then((_) {
             completer.complete(new Report(issues));
           });
@@ -260,6 +262,15 @@ class WorkItemValidator {
     }
   }
 
+  static void _checkPortfolio(List<Issue> issues, RDWorkItem workItem) {
+    if (workItem is RDDefect &&
+        RDPortfolioItem.INQUIRIES == workItem.portfolioItem) {
+      issues.add(
+          new Issue(IssueLevel.WARN, r'INQUIRY-DEFECT',
+              "Inquiry as defect."));
+    }
+  }
+
   static void _checkOwner(List<Issue> issues, RDWorkItem workItem) {
     if (workItem.scheduleState > RDScheduleState.DEFINED &&
         workItem.scheduleState < RDScheduleState.ACCEPTED &&
@@ -329,7 +340,8 @@ class WorkItemValidator {
               .name}] is not the current one [${currentIteration.name}]."));
     }
     if (workItem.iteration != null && workItem.iteration == currentIteration &&
-        workItem.planEstimate == null && !workItem.blocked && !workItem.inquiry) {
+        workItem.planEstimate == null && !workItem.blocked &&
+        !workItem.inquiry) {
       issues.add(
           new Issue(
               IssueLevel.IMPORTANT, r'CURRENT-ITERATION-WITHOUT-ESTIMATION',
@@ -390,7 +402,6 @@ class WorkItemValidator {
       workItem.owner != null && workItem.owner == qaDeployer;
 
   static bool taggedAsDeployed(RDWorkItem workItem) {
-
     if (workItem.tags != null) {
       for (RDTag tag in workItem.tags) {
         if (tag == RDTag.UAT || tag == RDTag.PRE || tag == RDTag.PRO) {
