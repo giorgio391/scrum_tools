@@ -60,30 +60,41 @@ class WorkItemsCommands extends UtilOptionCommand {
 
     if (r'dep-pro' == action) {
       rallyService.getPRODeploymentPending().then((Iterable<RDWorkItem> ite) {
+        RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _MailExtraAction('PRO deployment').mail);
+            extraAction: new _SummaryPrinter(RDTag.PRO, repo, r'psnow/live',
+                new _MailExtraAction('PRO deployment').mail).print
+        );
       });
     } else if (r'dep-pre' == action) {
       rallyService.getPREDeploymentPending().then((Iterable<RDWorkItem> ite) {
+        RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _MailExtraAction('PRE deployment').mail);
+            extraAction: new _SummaryPrinter(RDTag.PRE, repo, r'psnow/live',
+                new _MailExtraAction('PRE deployment').mail).print);
       });
     } else if (r'dep-uat' == action) {
       rallyService.getUATDeploymentPending().then((Iterable<RDWorkItem> ite) {
+        RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _MailExtraAction('UAT deployment').mail);
+            extraAction: new _SummaryPrinter(RDTag.UAT, repo, r'psnow/master',
+                new _MailExtraAction('UAT deployment').mail).print);
       });
     } else if (r'dep-uat->pre' == action) {
       rallyService.getUAT2PREDeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _MailExtraAction('UAT->PRE deployment').mail);
+        RepositorySync repo = _getWiMetaRepo();
+        _printIterableAndClose(ite, chk, wiMetaRepo: repo,
+            extraAction: new _SummaryPrinter(RDTag.PRE, repo, r'psnow/master',
+                new _MailExtraAction('UAT->PRE deployment').mail).print);
       });
     } else if (r'dep-uat->pro' == action) {
       rallyService.getUAT2PRODeploymentPending().then((
           Iterable<RDWorkItem> ite) {
-        _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _MailExtraAction('UAT->PRO deployment').mail);
+        RepositorySync repo = _getWiMetaRepo();
+        _printIterableAndClose(ite, chk, wiMetaRepo: repo,
+            extraAction: new _SummaryPrinter(RDTag.PRO, repo, r'psnow/live',
+                new _MailExtraAction('UAT->PRO deployment').mail).print);
       });
     } else if (r'dev-pending' == action) {
       _checkMissedIteration(() {
@@ -247,7 +258,6 @@ class WorkItemsCommands extends UtilOptionCommand {
           .bold().yellow().inverted(r'I').write(r'nquiry/')
           .bold().yellow().inverted(r'O').write(r'peration')
           .writeln(r' |');
-      _p.writeln('Count: ${ite.length}');
       if (extraAction != null) {
         await extraAction(ite);
       }
@@ -577,4 +587,100 @@ class _MailExtraAction {
     return new Future.value(null);
   }
 
+}
+
+class _SummaryPrinter {
+  RDTag _tag;
+  RepositorySync _wiMetaRepo;
+  String _appVersionKey;
+  _ExtraAction _extraAction;
+
+  _SummaryPrinter(this._tag, this._wiMetaRepo, this._appVersionKey,
+      [this._extraAction]);
+
+
+  Future print(Iterable<RDWorkItem> workItems) {
+    _printDeploymentSummary(_tag, workItems, _wiMetaRepo, _appVersionKey);
+    if (_extraAction != null) _extraAction(workItems);
+    return new Future.value(null);
+  }
+}
+
+void _printDeploymentSummary(RDTag tag, Iterable<RDWorkItem> workItems,
+    RepositorySync wiMetaRepo, String appVersionKey) {
+  if (hasValue(workItems)) {
+    Map<String, dynamic> max = {};
+    workItems.forEach((RDWorkItem workItem) {
+      PersistedData data = wiMetaRepo.get(workItem.formattedID);
+      if (data != null && hasValue(data.data)) {
+        Map<String, dynamic> m = data.data;
+        m.keys.forEach((String key) {
+          if (hasValue(m[key]) && hasValue(m[key].trim())) {
+            if (key == r'notes') {
+              if (max[key] == null) max[key] = [];
+              max[key].add('[${workItem.formattedID}] -> ${m[key]}#');
+            } else if (key.startsWith(r'db/')) {
+              if (max[key] == null) max[key] = [];
+              max[key].add(m[key]);
+            } else {
+              if (max[key] == null || max[key].compareTo(m[key]) < 0)
+                max[key] = m[key];
+            }
+          }
+        });
+      }
+    });
+    max.keys.where((String key) => key.startsWith(r'db/')).forEach((
+        String key) {
+      max[key].sort();
+    });
+
+    String appVersion = max[appVersionKey];
+    if (hasValue(appVersion)) {
+      _p.inverted(r'  *** SUMMARY ***  ').pln();
+      _p.cyan(r'Count: ').bold(workItems.length.toString()).pln();
+      _p.cyan(r'Milestone: ').bold(_milestoneName(tag, appVersion)).pln();
+      _p.cyan(r'Tag: ').bold(tag.name).pln();
+      _p.dim(r'Versions:¬').pln();
+      _wimeta1.forEach((String key) {
+        if (hasValue(max[key])) _p.p(r'· ').cyan(key).p(r' [').bold(max[key]).p(
+            r'] ').pln();
+      });
+      _wimeta2.forEach((String key) {
+        if (hasValue(max[key])) _p.p(r'· ').cyan(key).p(r' [').bold(max[key]).p(
+            r'] ').pln();
+      });
+      if (hasValue(max[r'notes'])) {
+        _p.cyan(r'Notes:¬').pln();
+        max[r'notes'].forEach((String note) {
+          _p.bold(note).pln();
+        });
+        _p.ln;
+      }
+    }
+  }
+}
+
+String _milestoneName(RDTag tag, String appVersion, [DateTime date]) {
+  StringBuffer sb = new StringBuffer(tag.name);
+  sb.write(r'-[V:');
+  sb.write(appVersion);
+  sb.write(r']');
+  DateTime d = date == null ? new DateTime.now() : date;
+  sb.write(r'-[D:');
+  sb.write(d.year);
+  sb.write(r'-');
+  if (d.month < 10) sb.write(r'0');
+  sb.write(d.month);
+  sb.write(r'-');
+  if (d.day < 10) sb.write(r'0');
+  sb.write(d.day);
+  sb.write(r'_');
+  if (d.hour < 10) sb.write(r'0');
+  sb.write(d.hour);
+  sb.write(r':');
+  if (d.minute < 10) sb.write(r'0');
+  sb.write(d.minute);
+  sb.write(r']');
+  return sb.toString();
 }

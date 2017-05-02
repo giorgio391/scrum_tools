@@ -146,6 +146,8 @@ class Printer {
     return this;
   }
 
+  Printer p ([dynamic value]) => write(value);
+
   Printer writeln([dynamic value]) {
     if (value == null)
       _sink.writeln();
@@ -153,6 +155,9 @@ class Printer {
       _sink.writeln(format(value));
     return this;
   }
+
+  Printer pln ([dynamic value]) => writeln(value);
+  Printer get ln  => writeln();
 
   Printer error(dynamic value) {
     _sinkError.write(format(value));
