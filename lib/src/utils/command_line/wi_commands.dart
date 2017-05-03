@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:prompt/prompt.dart';
 import 'package:scrum_tools/src/rally/rally_entities.dart';
+import 'package:scrum_tools/src/server/rally_proxy.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/utils/mailer.dart';
 import 'package:scrum_tools/src/utils/repository/repository.dart';
@@ -62,39 +63,43 @@ class WorkItemsCommands extends UtilOptionCommand {
       rallyService.getPRODeploymentPending().then((Iterable<RDWorkItem> ite) {
         RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _SummaryPrinter(RDTag.PRO, repo, r'psnow/live',
-                new _MailExtraAction('PRO deployment').mail).print
-        );
+            extraAction: new DeployExtraAction(
+                r'PRO deployment', RDTag.PRO, r'psnow/live', repo)
+                .doAction);
       });
     } else if (r'dep-pre' == action) {
       rallyService.getPREDeploymentPending().then((Iterable<RDWorkItem> ite) {
         RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _SummaryPrinter(RDTag.PRE, repo, r'psnow/live',
-                new _MailExtraAction('PRE deployment').mail).print);
+            extraAction: new DeployExtraAction(
+                r'PRE deployment', RDTag.PRE, r'psnow/live', repo)
+                .doAction);
       });
     } else if (r'dep-uat' == action) {
       rallyService.getUATDeploymentPending().then((Iterable<RDWorkItem> ite) {
         RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: _getWiMetaRepo(),
-            extraAction: new _SummaryPrinter(RDTag.UAT, repo, r'psnow/master',
-                new _MailExtraAction('UAT deployment').mail).print);
+            extraAction: new DeployExtraAction(
+                r'UAT deployment', RDTag.UAT, r'psnow/master', repo)
+                .doAction);
       });
     } else if (r'dep-uat->pre' == action) {
       rallyService.getUAT2PREDeploymentPending().then((
           Iterable<RDWorkItem> ite) {
         RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: repo,
-            extraAction: new _SummaryPrinter(RDTag.PRE, repo, r'psnow/master',
-                new _MailExtraAction('UAT->PRE deployment').mail).print);
+            extraAction: new DeployExtraAction(
+                r'UAT->PRE deployment', RDTag.PRE, r'psnow/master', repo)
+                .doAction);
       });
     } else if (r'dep-uat->pro' == action) {
       rallyService.getUAT2PRODeploymentPending().then((
           Iterable<RDWorkItem> ite) {
         RepositorySync repo = _getWiMetaRepo();
         _printIterableAndClose(ite, chk, wiMetaRepo: repo,
-            extraAction: new _SummaryPrinter(RDTag.PRO, repo, r'psnow/live',
-                new _MailExtraAction('UAT->PRO deployment').mail).print);
+            extraAction: new DeployExtraAction(
+                r'UAT->PRO deployment', RDTag.PRO, r'psnow/live', repo)
+                .doAction);
       });
     } else if (r'dev-pending' == action) {
       _checkMissedIteration(() {
@@ -369,6 +374,19 @@ class WorkItemsCommands extends UtilOptionCommand {
           _p.blue().inverted(tag);
         });
     }
+    if (hasValue(workItem.milestones)) {
+      if (hasValue(workItem.tags)) {
+        _p.write(r' >< ');
+      } else {
+        _p.writeln();
+        _p.write(r'     ');
+      }
+      workItem.milestones.forEach((RDMilestone milestone) {
+        _p.write(r'·');
+        _p.cyan().inverted(
+            '${milestone.name} ${_formatShortDate(milestone.targetDate)}');
+      });
+    }
     _p.writeln();
 
     if (chk) {
@@ -403,7 +421,14 @@ class WorkItemsCommands extends UtilOptionCommand {
 
   void _meta([Iterable<String> wiCodes]) {
     if (hasValue(wiCodes)) {
-      wiCodes.forEach((String wiCode) => _singleMeta(wiCode));
+      wiCodes.forEach((String wiCode) {
+        String code = normalizeWorkItemCodeFormat(wiCode);
+        if (validWorkItemCodePattern(code)) {
+          _singleMeta(code);
+        } else {
+          _p.red('Work item code not valid [${wiCode} -> ${code}]!').writeln();
+        }
+      });
     } else {
       _singleMeta();
     }
@@ -565,7 +590,56 @@ class _PRankColumnHandler {
     p.write(pRank);
     p.write(r' ');
   }
+}
 
+class DeployExtraAction {
+
+  _MailExtraAction _mail;
+  _SummaryPrinter _summary;
+
+  DeployExtraAction(String subject, RDTag tag, String appVersionKey,
+      RepositorySync repo) {
+    _mail = new _MailExtraAction(subject);
+    _summary = new _SummaryPrinter(tag, repo, appVersionKey);
+  }
+
+  Future doAction(Iterable<RDWorkItem> workItems) {
+    _summary._print(workItems);
+    String action = askSync(new Question(
+        ' ${bold(r'')}get list by ${bold(r'e')}mail/${bold(
+            r't')}ag deployment/${bold(r'c')}ancel'));
+    switch (action) {
+      case r'e':
+        _mail.mail(workItems);
+        break;
+      case r't':
+        return doTagAction(workItems);
+      case r'c':
+        break;
+    }
+    return new Future.value(null);
+  }
+
+  Future doTagAction(Iterable<RDWorkItem> workItems) {
+    Completer completer = new Completer();
+    _createRDService().then((BasicRallyService rs) {
+      rs.createMilestone(_summary._milestoneName, artifacts: workItems).then((
+          RDMilestone milestone) {
+        _p.cyan(r'Milestone code: ').bold(milestone.formattedID).pln();
+        rs.addTagToWorkItems(workItems, _summary._tag).listen((RDWorkItem wi) {
+          _p.yellow(wi.formattedID).write(r' -> ')
+              .bold(_summary._tag.name)
+              .pln();
+        }, onDone: () {
+          completer.complete();
+          rs.close();
+        }, onError: (error) => _p.red(error));
+      }).catchError((error) {
+        _p.red(error);
+      });
+    });
+    return completer.future;
+  }
 }
 
 class _MailExtraAction {
@@ -578,9 +652,10 @@ class _MailExtraAction {
   }
 
   Future mail(Iterable<RDWorkItem> workItems) {
-    if (askSync(new Question.confirm(r'Send list by email:'))) {
+    String recipient = platformUserEmail;
+    if (askSync(new Question.confirm(
+        'Confirm list email sending to [${recipient}]:'))) {
       String html = formatSimpleWIHtmlList(workItems);
-      String recipient = '${platformUser}@emergya.com';
       Message message = new Message(_subject, html)
         ..recipients = [recipient];
       return _mailer.send(message);
@@ -595,65 +670,77 @@ class _SummaryPrinter {
   RepositorySync _wiMetaRepo;
   String _appVersionKey;
   _ExtraAction _extraAction;
+  Map<String, dynamic> _maxValues;
+  String _milestoneName;
 
   _SummaryPrinter(this._tag, this._wiMetaRepo, this._appVersionKey,
       [this._extraAction]);
 
-
-  Future print(Iterable<RDWorkItem> workItems) {
-    _printDeploymentSummary(_tag, workItems, _wiMetaRepo, _appVersionKey);
+  Future _print(Iterable<RDWorkItem> workItems) {
+    _calculate(workItems);
+    _printDeploymentSummary(_tag, _appVersionKey, workItems);
     if (_extraAction != null) _extraAction(workItems);
     return new Future.value(null);
   }
-}
 
-void _printDeploymentSummary(RDTag tag, Iterable<RDWorkItem> workItems,
-    RepositorySync wiMetaRepo, String appVersionKey) {
-  if (hasValue(workItems)) {
-    Map<String, dynamic> max = {};
-    workItems.forEach((RDWorkItem workItem) {
-      PersistedData data = wiMetaRepo.get(workItem.formattedID);
-      if (data != null && hasValue(data.data)) {
-        Map<String, dynamic> m = data.data;
-        m.keys.forEach((String key) {
-          if (hasValue(m[key]) && hasValue(m[key].trim())) {
-            if (key == r'notes') {
-              if (max[key] == null) max[key] = [];
-              max[key].add('[${workItem.formattedID}] -> ${m[key]}#~n');
-            } else if (key.startsWith(r'db/')) {
-              if (max[key] == null) max[key] = [];
-              max[key].add(m[key]);
-            } else {
-              if (max[key] == null || max[key].compareTo(m[key]) < 0)
-                max[key] = m[key];
+  void _calculate(Iterable<RDWorkItem> workItems) {
+    if (hasValue(workItems)) {
+      _maxValues = {};
+      workItems.forEach((RDWorkItem workItem) {
+        PersistedData data = _wiMetaRepo.get(workItem.formattedID);
+        if (data != null && hasValue(data.data)) {
+          Map<String, dynamic> m = data.data;
+          m.keys.forEach((String key) {
+            if (hasValue(m[key]) && hasValue(m[key].trim())) {
+              if (key == r'notes') {
+                if (_maxValues[key] == null) _maxValues[key] = [];
+                _maxValues[key].add('[${workItem.formattedID}] -> ${m[key]}#~');
+              } else if (key.startsWith(r'db/')) {
+                if (_maxValues[key] == null) _maxValues[key] = [];
+                _maxValues[key].add(m[key]);
+              } else {
+                if (_maxValues[key] == null ||
+                    _maxValues[key].compareTo(m[key]) < 0)
+                  _maxValues[key] = m[key];
+              }
             }
-          }
-        });
-      }
-    });
-    max.keys.where((String key) => key.startsWith(r'db/')).forEach((
-        String key) {
-      max[key].sort();
-    });
+          });
+        }
+      });
+      _maxValues.keys.where((String key) => key.startsWith(r'db/')).forEach((
+          String key) {
+        _maxValues[key].sort();
+      });
+      _milestoneName = _createMilestoneName(_tag, _maxValues[_appVersionKey]);
+    }
+  }
 
-    String appVersion = max[appVersionKey];
+  void _printDeploymentSummary(RDTag tag, String appVersionKey,
+      Iterable<RDWorkItem> workItems) {
+    String appVersion = _maxValues[appVersionKey];
     if (hasValue(appVersion)) {
       _p.inverted(r'  *** SUMMARY ***  ').pln();
       _p.cyan(r'Count: ').bold(workItems.length.toString()).pln();
-      _p.cyan(r'Milestone: ').bold(_milestoneName(tag, appVersion)).pln();
+      _p.cyan(r'Milestone: ').bold(_milestoneName).pln();
       _p.cyan(r'Tag: ').bold(tag.name).pln();
       _p.dim(r'Versions:¬').pln();
       _wimeta1.forEach((String key) {
-        if (hasValue(max[key])) _p.p(r'· ').cyan(key).p(r' [').bold(max[key]).p(
-            r'] ').pln();
+        if (hasValue(_maxValues[key])) _p.p(r'· ').cyan(key).p(r' [')
+            .bold(_maxValues[key])
+            .p(
+            r'] ')
+            .pln();
       });
       _wimeta2.forEach((String key) {
-        if (hasValue(max[key])) _p.p(r'· ').cyan(key).p(r' [').bold(max[key]).p(
-            r'] ').pln();
+        if (hasValue(_maxValues[key])) _p.p(r'· ').cyan(key).p(r' [')
+            .bold(_maxValues[key])
+            .p(
+            r'] ')
+            .pln();
       });
-      if (hasValue(max[r'notes'])) {
+      if (hasValue(_maxValues[r'notes'])) {
         _p.cyan(r'Notes:¬').pln();
-        max[r'notes'].forEach((String note) {
+        _maxValues[r'notes'].forEach((String note) {
           _p.bold(note).pln();
         });
         _p.ln;
@@ -662,26 +749,49 @@ void _printDeploymentSummary(RDTag tag, Iterable<RDWorkItem> workItems,
   }
 }
 
-String _milestoneName(RDTag tag, String appVersion, [DateTime date]) {
+String _createMilestoneName(RDTag tag, String appVersion) {
   StringBuffer sb = new StringBuffer(tag.name);
   sb.write(r'-[V:');
   sb.write(appVersion);
   sb.write(r']');
-  DateTime d = date == null ? new DateTime.now() : date;
-  sb.write(r'-[D:');
-  sb.write(d.year);
-  sb.write(r'-');
-  if (d.month < 10) sb.write(r'0');
-  sb.write(d.month);
-  sb.write(r'-');
-  if (d.day < 10) sb.write(r'0');
-  sb.write(d.day);
-  sb.write(r'_');
-  if (d.hour < 10) sb.write(r'0');
-  sb.write(d.hour);
-  sb.write(r':');
-  if (d.minute < 10) sb.write(r'0');
-  sb.write(d.minute);
-  sb.write(r']');
   return sb.toString();
+}
+
+String _formatShortDate(DateTime date) {
+  StringBuffer sb = new StringBuffer();
+  sb.write(date.year - 2000);
+  sb.write(r'-');
+  if (date.month < 10) sb.write(r'0');
+  sb.write(date.month);
+  sb.write(r'-');
+  if (date.day < 10) sb.write(r'0');
+  sb.write(date.day);
+  sb.write(r'_');
+  if (date.hour < 10) sb.write(r'0');
+  sb.write(date.hour);
+  sb.write(r':');
+  if (date.minute < 10) sb.write(r'0');
+  sb.write(date.minute);
+  return sb.toString();
+}
+
+Future<BasicRallyService> _createRDService() {
+  Completer<BasicRallyService> completer = new Completer<BasicRallyService>();
+  rallyService.getDeveloperByEmail(platformUserEmail).then((RDUser user) {
+    if (user == null) {
+      return completer.completeError(
+          'User by email [${platformUserEmail}] not found!');
+    }
+    String password = askSync(
+        new Question('RD Password for [${user.userName}]', secret: true));
+    if (password.length > 2) {
+      RallyDevProxy proxy = new RallyDevProxy(user.userName, password);
+      BasicRallyService service = new BasicRallyService(proxy);
+      service.getUser(user.ID).then((RDUser u) {
+        if (u != null) return completer.complete(service);
+        return completer.complete('User not found [${user.ID}]');
+      }).catchError((error) => completer.completeError(error));
+    }
+  });
+  return completer.future;
 }

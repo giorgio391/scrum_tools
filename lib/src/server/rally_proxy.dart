@@ -9,6 +9,13 @@ import 'package:logging/logging.dart';
 
 const String _baseUrl = rallyAPIBaseUrl;
 
+class UnauthorizedException implements Exception {
+  UnauthorizedException._internal();
+}
+
+UnauthorizedException _unauthorizedException = new UnauthorizedException
+    ._internal();
+
 class RallyDevProxy implements ScrumHttpClient {
 
   static final Uri _baseUri = Uri.parse(_baseUrl);
@@ -119,9 +126,14 @@ class RallyDevProxy implements ScrumHttpClient {
           sb.write(content);
         })
           ..onDone(() {
-            completer.complete(sb.toString());
-            _log.finer('Retrieved URL -> ${uriPart}');
-            _log.finest(() => 'Retrieved content -> ${sb}');
+            if (response.statusCode == HttpStatus.UNAUTHORIZED) {
+              _log.finer('Unauthorized [${_user}] -> ${uriPart}');
+              completer.completeError(_unauthorizedException);
+            } else {
+              _log.finer('Retrieved URL -> ${uriPart}');
+              _log.finest(() => 'Retrieved content -> ${sb}');
+              completer.complete(sb.toString());
+            }
           });
       }).catchError((error) {
         _log.severe(error);

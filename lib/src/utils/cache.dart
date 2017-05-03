@@ -41,13 +41,10 @@ class Cache<K, V> {
       _retriever(key).then((V value) {
         if (value != null) {
           cacheItem(key, value);
-          completer.complete(value);
-        } else {
-          completer.completeError('No value found for [${key}]!');
+          return completer.complete(value);
         }
-      }).catchError((error) {
-        completer.completeError(error);
-      });
+        return completer.completeError('No value found for [${key}]!');
+      }).catchError((error) => completer.completeError(error));
       return completer.future;
     }
     V value = _map[key];
@@ -213,6 +210,7 @@ class CachedTimeoutEvict<K, V> implements CacheListener <K, V> {
     _log.fine(() => '${_name}: Key ${key} cleared at ${new DateTime.now()
         .toIso8601String()}');
   }
+
   @override
   void cacheCleared() {
     _referenceTime.clear();

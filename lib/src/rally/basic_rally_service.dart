@@ -18,7 +18,7 @@ class BasicRallyService {
   static const String _defect = RDDefect.RDTypeKey;
   static const String _us = RDHierarchicalRequirement.RDTypeKey;
 
-  //static const int _qaDeployerID = 55504055635;
+  static const int _qaDeployerID = qaDepoyerID;
 
   static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
 
@@ -46,7 +46,9 @@ class BasicRallyService {
   String _pathRoot;
 
   Cache<int, RDIteration> _iterationsCache;
-  Cache<String, RDUser> _usersCache;
+  Cache<int, RDUser> _usersCache;
+  Cache<String, int> _developerIDByEmailCache;
+  Cache<String, RDUser> _developerByEmailCache;
   Cache<String, int> _workItemCodesCache;
   Cache<int, RDDefect> _defectsCache;
   Cache<int, RDHierarchicalRequirement> _hierarchicalRequirementCache;
@@ -63,8 +65,12 @@ class BasicRallyService {
 
     _iterationsCache = new Cache<int, RDIteration>.ready(
         _iterationRetriever, listener: evictFactory());
-    _usersCache = new Cache<String, RDUser>.ready(
+    _usersCache = new Cache<int, RDUser>.ready(
         _userRetriever, listener: evictFactory());
+    _developerIDByEmailCache = new Cache<String, int>.ready(
+        _developerIDByEmailRetriever, listener: evictFactory());
+    _developerByEmailCache = new Cache<String, RDUser>.ready(
+        _developerByEmailRetriever, listener: evictFactory());
     _workItemCodesCache = new Cache<String, int>.ready(
         getWorkItemID, listener: evictFactory());
     _defectsCache = new Cache<int, RDDefect>.ready(
@@ -95,12 +101,58 @@ class BasicRallyService {
     return completer.future;
   }
 
-  Future<RDUser> _userRetriever(String key) {
+  Future<RDUser> _userRetriever(int id) {
     Completer<RDUser> completer = new Completer<RDUser>();
-    _httpClient.getString('$_pathRoot/user/$key').then((String json) {
+    _httpClient.getString('$_pathRoot/user/${id}').then((String json) {
       Map map = JSON.decode(json);
       RDUser user = new RDUser.fromMap(map[r'User']);
       completer.complete(user);
+    });
+    return completer.future;
+  }
+
+  Future<int> _developerIDByEmailRetriever(String email) {
+    Completer<int> completer = new Completer<int>();
+    _httpClient.getString(
+        '$_pathRoot/user?query=((EmailAddress%20=%20"${email}") AND (ObjectID%20!=%20${_qaDeployerID}))')
+        .then((String json) {
+      Map map = JSON.decode(json);
+      if (map[r'QueryResult'][r'Results'] != null) {
+        List results = map[r'QueryResult'][r'Results'];
+        if (results.length > 0) {
+          if (results.length == 1) {
+            int id = idFromRef(results.first[r'_ref']);
+            completer.complete(id);
+            return;
+          }
+          completer.completeError(
+              'More than one user id found with email [${email}].');
+        }
+      }
+      completer.complete(null);
+    });
+    return completer.future;
+  }
+
+  Future<RDUser> _developerByEmailRetriever(String email) {
+    Completer<RDUser> completer = new Completer<RDUser>();
+    _httpClient.getString(
+        '$_pathRoot/user?query=((EmailAddress%20=%20"${email}") AND (ObjectID%20!=%20${_qaDeployerID}))&fetch=true')
+        .then((String json) {
+      Map map = JSON.decode(json);
+      if (map[r'QueryResult'][r'Results'] != null) {
+        List results = map[r'QueryResult'][r'Results'];
+        if (results.length > 0) {
+          if (results.length == 1) {
+            RDUser user = new RDUser.fromMap(results.first);
+            completer.complete(user);
+            return;
+          }
+          completer.completeError(
+              'More than one user found with email [${email}].');
+        }
+      }
+      completer.complete(null);
     });
     return completer.future;
   }
@@ -348,8 +400,16 @@ class BasicRallyService {
     return new Future.value(_currentIteration);
   }
 
-  Future<RDUser> getUser(String key) {
-    return _usersCache.get(key);
+  Future<RDUser> getUser(int id) {
+    return _usersCache.get(id);
+  }
+
+  Future<int> getDeveloperIDByEmail(String email) {
+    return _developerIDByEmailCache.get(email);
+  }
+
+  Future<RDUser> getDeveloperByEmail(String email) {
+    return _developerByEmailCache.get(email);
   }
 
   Future<RDWorkItem> getWorkItem(String key) {
@@ -536,15 +596,13 @@ class BasicRallyService {
         completer.completeError(
             r'One entry value map expected!');
       else {
-        result.forEach((String key, dynamic data) {
-          Map<String, dynamic> map = data;
-          if (hasValue(map[r'Errors'])) {
-            completer.completeError({r'Rally API errors': map[r'Errors']});
-          } else {
-            Map<String, dynamic> objectMap = map[r'Object'];
-            completer.complete(objectMap);
-          }
-        });
+        Map<String, dynamic> map = result[result.keys.first];
+        if (hasValue(map[r'Errors'])) {
+          completer.completeError({r'Rally API errors': map[r'Errors']});
+        } else {
+          Map<String, dynamic> objectMap = map[r'Object'];
+          completer.complete(objectMap);
+        }
       }
     });
     return completer.future;
@@ -621,8 +679,6 @@ class BasicRallyService {
     } else {
       Set<RDWorkItem> toTag = new Set.from(workItems);
       int counter = toTag.length;
-      StreamController<RDWorkItem> streamController = new StreamController<
-          RDWorkItem>();
       toTag.forEach((RDWorkItem workItem) {
         addTag(workItem, tag).then((RDWorkItem workItem) {
           streamController.add(workItem);

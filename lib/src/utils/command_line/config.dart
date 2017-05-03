@@ -17,6 +17,7 @@ import 'package:scrum_tools/src/utils/helpers.dart';
 import 'package:scrum_tools/src/rally/basic_rally_service.dart';
 
 String platformUser = Platform.environment[r'USER'];
+String platformUserEmail = '${platformUser}@emergya.com';
 
 // **************************************************************************
 

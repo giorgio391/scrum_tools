@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'package:scrum_tools/src/rally/const.dart';
 
-int _idFromUrl(String url) {
+int idFromRef(String url) {
   return int.parse(url.substring(url.lastIndexOf(r'/') + 1));
 }
 
@@ -309,7 +309,7 @@ class RDRevision extends RDEntity {
     _description = map[r'Description'];
     _revisionNumber = int.parse(map[r'RevisionNumber']);
     _user = new RDUser.DTO(
-        _idFromUrl(map[r'User'][r'_ref']), map[r'User'][r'_refObjectName']);
+        idFromRef(map[r'User'][r'_ref']), map[r'User'][r'_refObjectName']);
   }
 
 }
@@ -618,13 +618,13 @@ abstract class RDWorkItem extends RDEntity {
     _creationDate = DateTime.parse(map[r'CreationDate']);
     _lastUpdateDate = DateTime.parse(map[r'LastUpdateDate']);
     _rank = map[r'DragAndDropRank'];
-    _revisionHistoryID = _idFromUrl(map[r'RevisionHistory'][r'_ref']);
+    _revisionHistoryID = idFromRef(map[r'RevisionHistory'][r'_ref']);
     _notes = map[r'Notes'];
     List myTags = map[r'Tags'][r'_tagsNameArray'];
     if (myTags != null && myTags.length > 0) {
       _tags = new SplayTreeSet<RDTag>();
       myTags.forEach((value) {
-        RDTag tag = new RDTag.DTO(_idFromUrl(value[r'_ref']), value[r'Name']);
+        RDTag tag = new RDTag.DTO(idFromRef(value[r'_ref']), value[r'Name']);
         if (tag == RDTag.UAT || tag == RDTag.PRE || tag == RDTag.PRO)
           _isDeployed = true;
         _tags.add(tag);
@@ -635,28 +635,28 @@ abstract class RDWorkItem extends RDEntity {
       _milestones = new SplayTreeSet<RDMilestone>();
       myMilestones.forEach((value) {
         RDMilestone milestone = new RDMilestone.DTO(
-            _idFromUrl(value[r'_ref']), value[r'Name'],
+            idFromRef(value[r'_ref']), value[r'Name'],
             DateTime.parse(value[r'TargetDate']));
         _milestones.add(milestone);
       });
     }
     if (map[RDPortfolioItem.RDTypeName] != null) {
       _portfolioItem = new RDPortfolioItem.DTO(
-          _idFromUrl(map[RDPortfolioItem.RDTypeName][r'_ref']),
+          idFromRef(map[RDPortfolioItem.RDTypeName][r'_ref']),
           map[RDPortfolioItem.RDTypeName][r'_refObjectName'], null);
     }
     if (map[r'Owner'] != null) {
       _owner = new RDUser.DTO(
-          _idFromUrl(map[r'Owner'][r'_ref']), map[r'Owner'][r'_refObjectName']);
+          idFromRef(map[r'Owner'][r'_ref']), map[r'Owner'][r'_refObjectName']);
     }
     if (map[r'Project'] != null) {
       _project = new RDProject.DTO(
-          _idFromUrl(map[r'Project'][r'_ref']),
+          idFromRef(map[r'Project'][r'_ref']),
           map[r'Project'][r'_refObjectName']);
     }
     if (map[r'Iteration'] != null) {
       _iteration = new RDIteration._internal(
-          _idFromUrl(map[r'Iteration']['_ref']),
+          idFromRef(map[r'Iteration']['_ref']),
           map[r'Iteration'][r'_refObjectName']);
     }
     _planEstimate = map[r'PlanEstimate'];

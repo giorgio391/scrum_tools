@@ -76,8 +76,10 @@ class DailyEntryView {
     if (hasValue(entry.workItemCode)) {
       RDWorkItem workItem = _rallyService.getCachedWorkItem(entry.workItemCode);
       if (workItem != null) {
-        if (workItem.inquiry && entry.process != Process.INQUIRIES) return true;
-        if (workItem.operation && entry.process != Process.OPERATIONS)
+        if ((workItem.inquiry && entry.process != Process.INQUIRIES) ||
+            (!workItem.inquiry && entry.process == Process.INQUIRIES) ||
+            (workItem.operation && entry.process != Process.OPERATIONS) ||
+            (!workItem.operation && entry.process == Process.OPERATIONS))
           return true;
       }
     }
