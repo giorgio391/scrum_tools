@@ -251,7 +251,7 @@ class WorkItemsCommands extends UtilOptionCommand {
           .write(r"* Below 'In progress'").dim(r' | ')
           .write(r"** Below 'Completed'").dim(r' | ')
           .bold(r'*').write(r'/').bold(r'**').write(r" No owner").dim(r' | ')
-          .write(r"+ Expedite").dim(r' | ')
+          .inverted(r'+').write(r" Expedite").dim(r' | ')
           .red().inverted(r'B').write(r' Blocked').dim(r' | ')
           .green().inverted(r'R').write(r' RTP').dim(r' | ')
           .blink().bold().red('Top priority').dim(r' | ')
@@ -282,13 +282,6 @@ class WorkItemsCommands extends UtilOptionCommand {
         workItem.scheduleState < RDScheduleState.IN_PROGRESS ? r'*' : r' ');
     _p.write(workItem.scheduleState < RDScheduleState.COMPLETED ? r'*' : r' ');
     _p.reset();
-    _p.write(workItem.expedite ? r'+' : r' ');
-    if (workItem.blocked) {
-      _p.bold().red().inverted(r'B');
-    } else {
-      _p.write(r' ');
-    }
-    _p.write(r' ');
     if (workItem is RDHierarchicalRequirement &&
         workItem.predecessorsCount > 0) {
       _p.bold();
@@ -310,7 +303,16 @@ class WorkItemsCommands extends UtilOptionCommand {
     } else {
       _p.write(formatString(r' ', 18));
     }
-
+    if (workItem.expedite) {
+      _p.inverted(r'+');
+    } else {
+      _p.write(r' ');
+    }
+    if (workItem.blocked) {
+      _p.bold().red().inverted(r'B');
+    } else {
+      _p.write(r' ');
+    }
     if (workItem.ready) {
       _p.green().bold().inverted(r'R');
     } else {
@@ -370,8 +372,7 @@ class WorkItemsCommands extends UtilOptionCommand {
     _p.writeln();
 
     if (chk) {
-      await _printValidation
-        (workItem);
+      await _printValidation(workItem);
     }
 
     if (wiMetaRepo != null) {
@@ -384,12 +385,12 @@ class WorkItemsCommands extends UtilOptionCommand {
     if (report.hasIssues) {
       report.issues.where((Issue issue) =>
       issue.issueLevel == IssueLevel.IMPORTANT).forEach((Issue issue) {
-        _p.red('         >>> ${formatString(issue.name, 70)}');
+        _p.red('     >> ${formatString(issue.name, 70)}');
         _p.writeln();
       });
       report.issues.where((Issue issue) => issue.issueLevel == IssueLevel.WARN)
           .forEach((Issue issue) {
-        _p.yellow('          >> ${formatString(issue.name, 70)}');
+        _p.yellow('     >> ${formatString(issue.name, 70)}');
         _p.writeln();
       });
       report.issues.where((Issue issue) => issue.issueLevel == IssueLevel.INFO)
@@ -519,8 +520,8 @@ class WorkItemsCommands extends UtilOptionCommand {
   void _printWimeta(RepositorySync repo, String wiCode) {
     PersistedData pData = repo.get(wiCode);
     if (pData != null) {
-      _p.blue()
-          .dim('   - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
+      _p.blue().dim(
+          '     - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
           .writeln();
       _printMap(pData.data, _wimeta1);
       _printMap(pData.data, _wimeta2);
@@ -538,7 +539,7 @@ class WorkItemsCommands extends UtilOptionCommand {
       }
     });
     if (sb.length > 0) {
-      _p.blue().dim(r'   ==>').write(sb.toString()).writeln();
+      _p.blue().dim(r'       >').write(sb.toString()).writeln();
     }
   }
 }
@@ -618,7 +619,7 @@ void _printDeploymentSummary(RDTag tag, Iterable<RDWorkItem> workItems,
           if (hasValue(m[key]) && hasValue(m[key].trim())) {
             if (key == r'notes') {
               if (max[key] == null) max[key] = [];
-              max[key].add('[${workItem.formattedID}] -> ${m[key]}#');
+              max[key].add('[${workItem.formattedID}] -> ${m[key]}#~n');
             } else if (key.startsWith(r'db/')) {
               if (max[key] == null) max[key] = [];
               max[key].add(m[key]);

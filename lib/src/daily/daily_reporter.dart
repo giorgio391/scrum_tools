@@ -130,6 +130,8 @@ class DailyReporter {
           dailyForm.model.process = Process.INQUIRIES;
         else if (workItem.operation)
           dailyForm.model.process = Process.OPERATIONS;
+        else
+          dailyForm.model.process = Process.DEVELOPMENT;
       }); //.catchError((error) {
       // TODO
       //});

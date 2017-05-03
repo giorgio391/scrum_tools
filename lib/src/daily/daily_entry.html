@@ -1,6 +1,6 @@
 <div class="daily-entry">
     <div class="entry-row entry-row-1">
-        <div class="process" title="Type of process.">{{entry.process}}</div>
+        <div class="process" title="Type of process." [class.highlighted]="mismatch">{{entry.process}}</div>
         <div class="scope" title="Scope (PAST | TODAY).">{{entry.scope}}</div>
         <div class="teamMemberCode" title="Team member code.">{{entry.teamMemberCode}}</div>
         <div class="comments">
@@ -22,7 +22,9 @@
         </div>
     </div>
     <div class="entry-row entry-row-2">
-        <div class="workItemName" title="Work item title." [class.highlighted]="inquiry || operation">{{workItemName}}</div>
+        <div class="workItemName" title="Work item title." [class.highlighted]="inquiry || operation">
+            <span *ngIf="inquiry">[I] </span><span *ngIf="operation">[O] </span>{{workItemName}}
+        </div>
         <div class="environments" title="Affected environments.">
             <div *ngFor="let env of entry.environments">{{env}}</div>
         </div>

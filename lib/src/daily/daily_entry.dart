@@ -72,6 +72,18 @@ class DailyEntryView {
     return false;
   }
 
+  bool get mismatch {
+    if (hasValue(entry.workItemCode)) {
+      RDWorkItem workItem = _rallyService.getCachedWorkItem(entry.workItemCode);
+      if (workItem != null) {
+        if (workItem.inquiry && entry.process != Process.INQUIRIES) return true;
+        if (workItem.operation && entry.process != Process.OPERATIONS)
+          return true;
+      }
+    }
+    return false;
+  }
+
   DailyEntryView(this._rallyService);
 
   String get workItemName =>

@@ -33,6 +33,9 @@
       width: 92px;
       margin-right: 5px;
       text-align: left;
+      &.highlighted {
+        color: red;
+      }
     }
     .teamMemberCode {
       color: royalblue;
