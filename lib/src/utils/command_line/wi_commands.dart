@@ -445,84 +445,84 @@ class WorkItemsCommands extends UtilOptionCommand {
       if (!hasValue(code) || !hasValue(code.trim())) return;
       code = normalizeWorkItemCodeFormat(code);
       if (validWorkItemCodePattern(code)) {
-        _p.up('                                                           \r');
-        rallyService.getWorkItem(code).then((RDWorkItem wi) {
-          if (wi != null) {
-            _printWorkItem(wi, true).then((_) {
-              _singleMeta(code);
-            });
-          } else {
-            _p.red(r'Work item code not found!').writeln();
-            _singleMeta();
-          }
-        });
+        _singleMeta(code);
       } else {
         _p.red(r'Work item code not valid!').writeln();
         _singleMeta();
       }
     } else {
-      RepositorySync repo = _getWiMetaRepo();
-      PersistedData pData = repo.get(wiCode);
-      bool alreadyPersisted = pData != null;
-      Map<String, String> map = pData?.data;
+      _p.up('                                                           \r');
+      rallyService.getWorkItem(wiCode).then((RDWorkItem wi) {
+        if (wi != null) {
+          _printWorkItem(wi, true).then((_) {
+            RepositorySync repo = _getWiMetaRepo();
+            PersistedData pData = repo.get(wiCode);
+            bool alreadyPersisted = pData != null;
+            Map<String, String> map = pData?.data;
 
-      map ??= new Map<String, String>();
+            map ??= new Map<String, String>();
 
-      Function options = alreadyPersisted ?
-          () =>
-          askSync(new Question(
-              '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
-                  r'd')}elete')) :
-          () =>
-          askSync(new Question(
-              '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel'));
+            Function options = alreadyPersisted ?
+                () =>
+                askSync(new Question(
+                    '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
+                        r'd')}elete')) :
+                () =>
+                askSync(new Question(
+                    '  ${bold(r's')}ave/${bold(r'e')}dit/${bold(r'c')}ancel'));
 
-      String action = alreadyPersisted ? () {
-        _p.blue()
-            .dim('   - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
-            .writeln();
-        _printMap(map, _wimeta1);
-        _printMap(map, _wimeta2);
-        _printMap(map, _wimeta3);
-        return askSync(new Question(
-            '  ${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
-                r'd')}elete'));
-      }() : r'e';
+            String action = alreadyPersisted ? () {
+              _p.blue()
+                  .dim('   - ${pData.author} - ${formatTimestamp(pData.timestamp)}')
+                  .writeln();
+              _printMap(map, _wimeta1);
+              _printMap(map, _wimeta2);
+              _printMap(map, _wimeta3);
+              return askSync(new Question(
+                  '  ${bold(r'e')}dit/${bold(r'c')}ancel/${bold(
+                      r'd')}elete'));
+            }() : r'e';
 
-      if (action == r's') {
-        _p.writeln('No need to save because no change was done!');
-      } else {
-        while (action == r'e') {
-          _edit(map, _wimeta);
-          _printMap(map, _wimeta1);
-          _printMap(map, _wimeta2);
-          _printMap(map, _wimeta3);
-          if (!alreadyPersisted && !hasValue(map)) {
-            action = r'c';
-            break;
-          }
-          action = options();
-          while (![r's', r'e', r'c', r'd'].contains(action)) {
-            action = options();
-          }
-        }
+            if (action == r's') {
+              _p.writeln('No need to save because no change was done!');
+            } else {
+              while (action == r'e') {
+                _edit(map, _wimeta);
+                _printMap(map, _wimeta1);
+                _printMap(map, _wimeta2);
+                _printMap(map, _wimeta3);
+                if (!alreadyPersisted && !hasValue(map)) {
+                  action = r'c';
+                  break;
+                }
+                action = options();
+                while (![r's', r'e', r'c', r'd'].contains(action)) {
+                  action = options();
+                }
+              }
 
-        if (action == r'd' || (!hasValue(map) && alreadyPersisted)) {
-          if (!alreadyPersisted) {
-            _p.writeln('No need to delete because it was not persisted!');
-          } else {
-            bool confirm = askSync(new Question.confirm(red(r'Delete?')));
-            if (confirm) {
-              repo.delete(wiCode);
-              _p.red(r'Meta for [').bold(wiCode).red(r'] deleted!').writeln();
+              if (action == r'd' || (!hasValue(map) && alreadyPersisted)) {
+                if (!alreadyPersisted) {
+                  _p.writeln('No need to delete because it was not persisted!');
+                } else {
+                  bool confirm = askSync(new Question.confirm(red(r'Delete?')));
+                  if (confirm) {
+                    repo.delete(wiCode);
+                    _p.red(r'Meta for [').bold(wiCode).red(r'] deleted!').writeln();
+                  }
+                }
+              } else if (action == r's') {
+                repo.save(wiCode, map);
+                _p.yellow(r'Meta for [').bold(wiCode).yellow(r'] saved!').writeln();
+              }
             }
-          }
-        } else if (action == r's') {
-          repo.save(wiCode, map);
-          _p.yellow(r'Meta for [').bold(wiCode).yellow(r'] saved!').writeln();
+            rallyService.close(force: true);
+          });
+        } else {
+          _p.red(r'Work item code not found!').writeln();
+          _singleMeta();
         }
-      }
-      rallyService.close(force: true);
+      });
     }
   }
 

@@ -42,6 +42,7 @@ class StatisticsCommands extends UtilOptionCommand {
         ? new DateTime.now()
         : DateTime.parse(optionsMap[r'date']);
     int days = optionsMap[r'days'] ?? 31;
+    bool filter = optionsMap[r'filter'] == null || optionsMap[r'filter'];
 
     List<List> list4CSV = hasValue(optionsMap[r'csv']) ? [] : null;
 
@@ -94,8 +95,8 @@ class StatisticsCommands extends UtilOptionCommand {
 
       rallyService.getWorkItems(wiCodes).listen((RDWorkItem workItem) {
         _p.p('Retrieving: [${workItem.formattedID}]                   \r');
-        if (workItem.scheduleState > RDScheduleState.ACCEPTED &&
-            !workItem.creationDate.isBefore(firstDate))
+        if (!filter || (workItem.scheduleState > RDScheduleState.ACCEPTED &&
+            !workItem.creationDate.isBefore(firstDate)))
           wiMap[workItem.formattedID] = workItem;
       }).onDone(() {
         if (hasValue(wiMap)) {
@@ -107,7 +108,7 @@ class StatisticsCommands extends UtilOptionCommand {
               r'Actual', 7)}'
               ' | ${formatString(r' Creation', 10)} | ${formatString(
               r' Update', 10)} | ${formatString(
-              r'Sprint', 9)} | WI Name').pln();
+              r'Sprint', 9)} | S | WI Name').pln();
 
           if (list4CSV != null) list4CSV.add(
               [
@@ -119,6 +120,7 @@ class StatisticsCommands extends UtilOptionCommand {
                 r'Creation',
                 r'Update',
                 r'Sprint',
+                r'S',
                 r'WI Name'
               ]);
 
@@ -158,9 +160,13 @@ class StatisticsCommands extends UtilOptionCommand {
 
               if (workItem.iteration != null) {
                 _p.p(r' | ').p(formatString(workItem.iteration.name, 9));
+              } else {
+                _p.p(r' | ').p(formatString(r'                 ', 9));
               }
 
-              _p.p(r' | ').p(workItem.name);
+              _p.p(r' | ').p(workItem.scheduleState.abbr);
+
+              _p.p(r' | ').p(formatString(workItem.name, 55));
             }
             _p.pln();
 
@@ -174,6 +180,7 @@ class StatisticsCommands extends UtilOptionCommand {
                 formatDateYMD(workItem.creationDate),
                 formatDateYMD(workItem.lastUpdateDate),
                 workItem.iteration == null ? r'' : workItem.iteration.name,
+                workItem.scheduleState.abbr,
                 workItem.name
               ]);
             }
