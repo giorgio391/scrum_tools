@@ -14,6 +14,15 @@ String formatDate(DateTime date) {
   return null;
 }
 
+String formatDateYMD(DateTime date) {
+  if (date != null) {
+    String s = "${date.year}-${date.month < 10 ? r'0' : r''}${date.month}-"
+        "${date.day < 10 ? r'0' : r''}${date.day}";
+    return s;
+  }
+  return null;
+}
+
 String formatTimestamp(DateTime date) {
   StringBuffer sb = new StringBuffer(formatDate(date));
   if (date != null) {

@@ -13,6 +13,7 @@ dependencies:
   yaml:
   test:
   angular2_components:
+  csv: ^3.1.2
 dev_dependencies:
   browser: ^0.10.0
   dart_to_js_script_rewriter: ^1.0.1

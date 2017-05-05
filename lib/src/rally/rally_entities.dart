@@ -550,6 +550,8 @@ abstract class RDWorkItem extends RDEntity {
   RDProject _project;
   DateTime _creationDate, _lastUpdateDate;
   double _planEstimate;
+  double _taskEstimateTotal;
+  double _taskActualTotal;
   bool _expedite;
   RDIteration _iteration;
   RDScheduleState _scheduleState;
@@ -585,6 +587,8 @@ abstract class RDWorkItem extends RDEntity {
   Set<RDMilestone> get milestones => _milestones;
 
   double get planEstimate => _planEstimate;
+  double get taskEstimateTotal => _taskEstimateTotal;
+  double get taskActualTotal => _taskActualTotal;
 
   RDIteration get iteration => _iteration;
 
@@ -660,6 +664,8 @@ abstract class RDWorkItem extends RDEntity {
           map[r'Iteration'][r'_refObjectName']);
     }
     _planEstimate = map[r'PlanEstimate'];
+    _taskEstimateTotal = map[r'TaskEstimateTotal'];
+    _taskActualTotal = map[r'TaskActualTotal'];
     _expedite = map[r'Expedite'];
   }
 
@@ -758,6 +764,7 @@ class RDPortfolioItem extends RDWorkItem {
 
   factory RDPortfolioItem.DTO(int id, String name, String formattedID) {
     if (id == INQUIRIES.ID) return INQUIRIES;
+    if (id == OPERATIONS.ID) return OPERATIONS;
     return new RDPortfolioItem._internal(id, name, formattedID);
   }
 

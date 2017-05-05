@@ -48,12 +48,15 @@ typedef Future _ExtraAction(Iterable<RDWorkItem> workItems);
 
 class WorkItemsCommands extends UtilOptionCommand {
 
+  @override
   String get abbr => r"w";
 
+  @override
   String get help => r'Utility for managing work items.';
 
   const WorkItemsCommands();
 
+  @override
   void executeOption(String option) {
     List<String> options = option.split(r'+');
     String action = options[0];
@@ -599,7 +602,7 @@ class DeployExtraAction {
 
   DeployExtraAction(String subject, RDTag tag, String appVersionKey,
       RepositorySync repo) {
-    _mail = new _MailExtraAction(subject);
+    _mail = new _MailExtraAction(subject, false);
     _summary = new _SummaryPrinter(tag, repo, appVersionKey);
   }
 
@@ -646,14 +649,15 @@ class _MailExtraAction {
 
   String _subject;
   Mailer _mailer;
+  bool _confirm;
 
-  _MailExtraAction(this._subject) {
+  _MailExtraAction(this._subject, [this._confirm = true]) {
     _mailer = new Mailer.fromMap(cfgValue(r'mailer-1'));
   }
 
   Future mail(Iterable<RDWorkItem> workItems) {
     String recipient = platformUserEmail;
-    if (askSync(new Question.confirm(
+    if (!_confirm || askSync(new Question.confirm(
         'Confirm list email sending to [${recipient}]:'))) {
       String html = formatSimpleWIHtmlList(workItems);
       Message message = new Message(_subject, html)
