@@ -629,9 +629,15 @@ class DeployExtraAction {
       rs.createMilestone(_summary._milestoneName, artifacts: workItems).then((
           RDMilestone milestone) {
         _p.cyan(r'Milestone code: ').bold(milestone.formattedID).pln();
-        rs.addTagToWorkItems(workItems, _summary._tag).listen((RDWorkItem wi) {
+        rs.tagDeployments(workItems, _summary._tag).listen((RDWorkItem wi) {
           _p.yellow(wi.formattedID).write(r' -> ')
               .bold(_summary._tag.name)
+              .p(r' | ')
+              .inverted().blue()
+              .bold(wi.scheduleState.abbr)
+              .p(r' | ')
+              .bold(wi.owner.displayName)
+              .p(r' | ')
               .pln();
         }, onDone: () {
           completer.complete();

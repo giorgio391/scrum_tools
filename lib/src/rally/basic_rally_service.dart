@@ -18,7 +18,7 @@ class BasicRallyService {
   static const String _defect = RDDefect.RDTypeKey;
   static const String _us = RDHierarchicalRequirement.RDTypeKey;
 
-  static const int _qaDeployerID = qaDepoyerID;
+  static const int _qaDeployerID = qaDeployerID;
 
   static const String _limitDate = r'"2016-12-31T23:59:59.000Z"';
 
@@ -668,6 +668,66 @@ class BasicRallyService {
     return completer.future;
   }
 
+  Future<RDWorkItem> tagDeployment(RDWorkItem workItem, RDTag tag) {
+    Completer<RDWorkItem> completer = new Completer<RDWorkItem>();
+    if (workItem == null || tag == null) {
+      completer.completeError(r'A work item and a tag must be provided!');
+    } else {
+      if (tag != RDTag.UAT && tag != RDTag.PRE && tag != RDTag.PRO) {
+        completer.completeError(
+            'Not a valid tag [${tag.name}] to deploy [${workItem
+                .formattedID}].');
+      } else {
+        if (hasValue(workItem.tags) &&
+            workItem.tags.contains(RDTag.NOT_TO_DEPLOY)) {
+          completer.completeError(
+              '[${workItem.formattedID}] tagged as "NOT TO DEPLOY"!');
+        } else {
+          Map<String, dynamic> data = {};
+          if (!hasValue(workItem.tags) || !workItem.tags.contains(tag)) {
+            List<RDTag> tags = hasValue(workItem.tags) ? new List<RDTag>.from(
+                workItem.tags) : new List<RDTag>();
+            tags.add(tag);
+            tags.sort();
+            List<Map<String, String>> list = [];
+            tags.forEach((RDTag t) {
+              list.add({'_ref': t.ref});
+            });
+            data[r'Tags'] = list;
+          }
+          if (workItem.scheduleState < RDScheduleState.ACCEPTED) {
+            data[r'ScheduleState'] = RDScheduleState.ACCEPTED.name;
+          }
+          if (workItem is RDDefect) {
+            if (workItem.owner != RDUser.DEFECT_VALIDATOR) {
+              data[r'Owner'] = {r'_ref': RDUser.DEFECT_VALIDATOR.ref};
+            }
+          } else if (workItem is RDHierarchicalRequirement) {
+            if (workItem.owner != RDUser.US_VALIDATOR) {
+              data[r'Owner'] = {r'_ref': RDUser.US_VALIDATOR.ref};
+            }
+          }
+          if (!hasValue(data)) {
+            completer.complete(workItem);
+          } else {
+            data = {workItem.typeName: data};
+            _operation('/${workItem.typeKey}/${workItem.ID}', data).then((
+                Map<String, dynamic> map) {
+              completer.complete(
+                  workItem is RDDefect ? new RDDefect.fromMap(map) :
+                  workItem is RDHierarchicalRequirement
+                      ? new RDHierarchicalRequirement
+                      .fromMap(map)
+                      :
+                  new RDPortfolioItem.fromMap(map));
+            });
+          }
+        }
+      }
+    }
+    return completer.future;
+  }
+
   Stream<RDWorkItem> addTagToWorkItems(Iterable<RDWorkItem> workItems,
       RDTag tag) {
     StreamController<RDWorkItem> streamController = new StreamController<
@@ -681,6 +741,30 @@ class BasicRallyService {
       int counter = toTag.length;
       toTag.forEach((RDWorkItem workItem) {
         addTag(workItem, tag).then((RDWorkItem workItem) {
+          streamController.add(workItem);
+        }).catchError((error) {
+          streamController.addError(error);
+        }).whenComplete(() {
+          counter--;
+          if (counter < 1) streamController.close();
+        });
+      });
+    }
+    return streamController.stream;
+  }
+
+  Stream<RDWorkItem> tagDeployments(Iterable<RDWorkItem> workItems, RDTag tag) {
+    StreamController<RDWorkItem> streamController = new StreamController<
+        RDWorkItem>();
+    if (!hasValue(workItems) || tag == null) {
+      streamController.addError(
+          r'A list with work items and a tag must be supplied!');
+      streamController.close();
+    } else {
+      Set<RDWorkItem> toTag = new Set.from(workItems);
+      int counter = toTag.length;
+      toTag.forEach((RDWorkItem workItem) {
+        tagDeployment(workItem, tag).then((RDWorkItem workItem) {
           streamController.add(workItem);
         }).catchError((error) {
           streamController.addError(error);

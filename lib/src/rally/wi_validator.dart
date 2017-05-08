@@ -105,14 +105,11 @@ class WorkItemValidator {
   static final Report _noWorkItemReport = new Report(
       [new Issue(IssueLevel.INFO, r'NO-WI', r"No workitem provided.")]);
 
-  static final RDUser _productOwner = new RDUser.DTO(
-      55503983146, r"David Pinczes");
-  static final RDUser _userStoryValidator = _productOwner;
-  static final RDUser _defectValidator = new RDUser.DTO(
-      58761211860, r"Lacramioara-Iulia");
-  static final RDUser _qaDeployer = new RDUser.DTO(
-      55504055635, r"QA / Deployer");
-  static final RDProject _project = new RDProject.DTO(55308115013, r"Gordon");
+  static const RDUser _productOwner = RDUser.PRODUCT_OWNER;
+  static const RDUser _userStoryValidator = RDUser.US_VALIDATOR;
+  static const RDUser _defectValidator = RDUser.DEFECT_VALIDATOR;
+  static const RDUser _qaDeployer = RDUser.QA_DEPLOYER;
+  static final RDProject _project = RDProject.Gordon;
 
   static RDUser get productOwner => _productOwner;
 

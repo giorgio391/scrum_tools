@@ -55,6 +55,8 @@ class StatisticsCommands extends UtilOptionCommand {
       }
       _p.pln();
       Map<String, double> sums = {};
+      Map<String, Map<String, double>> sumsByDev = {};
+      Set<String> teamMembers = new Set<String>();
       DateTime firstDate = null;
       DateTime lastDate = null;
       reports.forEach((DailyReport report) {
@@ -74,9 +76,18 @@ class StatisticsCommands extends UtilOptionCommand {
             sums[entry.workItemCode] =
             sums[entry.workItemCode] == null ? entry.hours : sums[entry
                 .workItemCode] + entry.hours;
+            if (sumsByDev[entry.workItemCode] == null)
+              sumsByDev[entry.workItemCode] = {};
+            sumsByDev[entry.workItemCode][entry.teamMemberCode] =
+            sumsByDev[entry.workItemCode][entry.teamMemberCode] == null ? entry
+                .hours : sumsByDev[entry.workItemCode][entry.teamMemberCode] +
+                entry.hours;
+            teamMembers.add(entry.teamMemberCode);
           });
         }
       });
+      List<String> teamMembersList = new List<String>.from(teamMembers)
+        ..sort();
       _p.p(r'First date: ').bold(formatDateYMD(firstDate))
           .p(r' Last date: ')
           .bold(formatDateYMD(lastDate));
@@ -108,7 +119,8 @@ class StatisticsCommands extends UtilOptionCommand {
               r'Actual', 7)}'
               ' | ${formatString(r' Creation', 10)} | ${formatString(
               r' Update', 10)} | ${formatString(
-              r'Sprint', 9)} | S | WI Name').pln();
+              r'Sprint', 9)} | S | ${formatString(r'WI Name', 45)} | Team M.')
+              .pln();
 
           if (list4CSV != null) list4CSV.add(
               [
@@ -122,7 +134,8 @@ class StatisticsCommands extends UtilOptionCommand {
                 r'Sprint',
                 r'S',
                 r'WI Name'
-              ]);
+              ]
+                ..addAll(teamMembersList));
 
 
           wiCodes.forEach((String wiCode) {
@@ -166,7 +179,20 @@ class StatisticsCommands extends UtilOptionCommand {
 
               _p.p(r' | ').p(workItem.scheduleState.abbr);
 
-              _p.p(r' | ').p(formatString(workItem.name, 55));
+              _p.p(r' | ').p(formatString(workItem.name, 45));
+
+              String teamMember = null;
+              double val = 0.0;
+
+              sumsByDev[workItem.formattedID].forEach((String key,
+                  double value) {
+                if (value > val) {
+                  teamMember = key;
+                  val = value;
+                }
+              });
+
+              _p.p(r' | ').p(formatString(teamMember, 9));
             }
             _p.pln();
 
@@ -182,7 +208,17 @@ class StatisticsCommands extends UtilOptionCommand {
                 workItem.iteration == null ? r'' : workItem.iteration.name,
                 workItem.scheduleState.abbr,
                 workItem.name
-              ]);
+              ]..addAll(() {
+                List<double> l = [];
+                teamMembersList.forEach((String s) {
+                  if (hasValue(sumsByDev[workItem.formattedID]) && sumsByDev[workItem.formattedID][s] != null) {
+                    l.add(sumsByDev[workItem.formattedID][s]);
+                  } else {
+                    l.add(0.0);
+                  }
+                });
+                return l;
+              }()));
             }
           });
         } else {

@@ -518,7 +518,19 @@ class RDTag extends RDEntity implements Comparable<RDTag> {
 /// Objects of this class represents Rallydev users.
 class RDUser extends RDEntity {
 
-  String _userName, _displayName, _emailAddress;
+  static const String RDTypeKey = r'user';
+
+  static const RDUser PRODUCT_OWNER = const RDUser._internal(
+      55503983146, r"David Pinczes");
+  static const RDUser US_VALIDATOR = PRODUCT_OWNER;
+  static const RDUser DEFECT_VALIDATOR = const RDUser._internal(
+      58761211860, r"Lacramioara-Iulia");
+  static const RDUser QA_DEPLOYER = const RDUser._internal(
+      55504055635, r"QA / Deployer");
+
+  final String _displayName;
+
+  final String _userName, _emailAddress;
 
   String get userName => _userName;
 
@@ -526,13 +538,25 @@ class RDUser extends RDEntity {
 
   String get emailAddress => _emailAddress;
 
-  RDUser.DTO(int id, this._displayName) : super._internal(id);
+  const RDUser._internal(int id, this._displayName,
+      [this._userName = null, this._emailAddress = null]) : super._internal(id);
 
-  RDUser.fromMap(Map<String, dynamic> map) : super._internalFromMap(map) {
-    _userName = map[r'UserName'];
-    _displayName = map[r'DisplayName'];
-    _emailAddress = map[r'EmailAddress'];
+  factory RDUser.DTO(int id, String displayName,
+      [String userName = null, String emailAddress = null]) {
+    if (id == PRODUCT_OWNER.ID) return PRODUCT_OWNER;
+    if (id == US_VALIDATOR.ID) return US_VALIDATOR;
+    if (id == DEFECT_VALIDATOR.ID) return DEFECT_VALIDATOR;
+    if (id == QA_DEPLOYER) return QA_DEPLOYER;
+    return new RDUser._internal(id, displayName, userName, emailAddress);
   }
+
+  factory RDUser.fromMap(Map<String, dynamic> map) {
+    return new RDUser.DTO(
+        map[r'ObjectID'], map[r'DisplayName'], map[r'UserName'],
+        map[r'EmailAddress']);
+  }
+
+  String get ref => '/${RDTypeKey}/${ID}';
 
   @override
   String toString() {
@@ -587,7 +611,9 @@ abstract class RDWorkItem extends RDEntity {
   Set<RDMilestone> get milestones => _milestones;
 
   double get planEstimate => _planEstimate;
+
   double get taskEstimateTotal => _taskEstimateTotal;
+
   double get taskActualTotal => _taskActualTotal;
 
   RDIteration get iteration => _iteration;
@@ -607,6 +633,7 @@ abstract class RDWorkItem extends RDEntity {
   RDPortfolioItem get portfolioItem => _portfolioItem;
 
   bool get inquiry => RDPortfolioItem.INQUIRIES == _portfolioItem;
+
   bool get operation => RDPortfolioItem.OPERATIONS == _portfolioItem;
 
   RDWorkItem.DTO(int id, this._name, this._formattedID) : super._internal(id);
