@@ -8,7 +8,7 @@ import 'package:start/start.dart';
 import 'package:scrum_tools/src/utils/configurer.dart';
 import 'package:scrum_tools/src/server/config.dart' as myCfg;
 import 'package:scrum_tools/src/server/rally_proxy.dart';
-import 'package:scrum_tools/src/server/rest/rest_server.dart';
+import 'package:scrum_tools/src/server/rest/impl/scrum_rest_server.dart';
 
 const webDirArg = 'web-dir';
 const hostArg = 'host';
@@ -160,7 +160,7 @@ Future _main(List<String> arguments, ConfigMap cfgMap) async {
 
   // Start REST API
   if (argResults[restArg] == true) {
-    RestServer restServer = myCfg.restServer;
+    ScrumRestServer restServer = myCfg.scrumRestServer;
     initializers.add(restServer.init);
   }
 

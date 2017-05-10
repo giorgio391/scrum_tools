@@ -17,6 +17,8 @@ class Cache<K, V> {
 
   CacheListener _listener;
 
+  bool containsKey (K key) => _map.containsKey(key);
+
   Cache({CacheListener listener: noOpsCacheListener}) {
     _listener = listener;
   }
@@ -35,8 +37,7 @@ class Cache<K, V> {
   /// Get the value from the cache. If it is not in the cache yet an attempt
   /// to retrieve it from the original repository will be done.
   Future<V> get(K key) {
-    if (!_map.containsKey(key)) {
-      if (_retriever == null) return null;
+    if (!_map.containsKey(key) && _retriever != null) {
       Completer<V> completer = new Completer<V>();
       _retriever(key).then((V value) {
         if (value != null) {
