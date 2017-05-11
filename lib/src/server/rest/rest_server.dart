@@ -115,6 +115,13 @@ class RESTContext {
   Map<String, List<String>> get parametersAll =>
       _request.uri.queryParametersAll;
 
+  RESTSession _session;
+
+  RESTSession get session {
+    if (_session == null) _session = new RESTSession(_request);
+    return _session;
+  }
+
   void respondOK() {
     respondObject(OK_RESPONSE);
   }
@@ -159,4 +166,46 @@ class RESTContext {
     }();
     respondString(responseString);
   }
+}
+
+class RESTSession {
+
+  static const String SESSION_KEY = r'SCRUM_REST_SESSION';
+
+  HttpSession _session;
+
+  RESTSession(HttpRequest request) {
+    this._session = request.session;
+  }
+
+  bool get isNew => _session.isNew;
+
+  bool get isEmpty =>
+      _session == null || !_session.containsKey(SESSION_KEY) ||
+          !hasValue(_session[SESSION_KEY]);
+
+  operator [](Object key) =>
+      _session == null || !_session.containsKey(SESSION_KEY)
+          ? null
+          : _session[SESSION_KEY][key];
+
+  operator []=(Object key, dynamic value) {
+    if (!_session.containsKey(SESSION_KEY))
+      _session[SESSION_KEY] = new Map<Object, dynamic>();
+    _session[SESSION_KEY][key] = value;
+  }
+
+  void destroy() => _session.destroy();
+
+  dynamic remove(Object key) {
+    if (_session != null &&
+        _session.containsKey(SESSION_KEY)) return (_session[SESSION_KEY] as Map)
+        .remove(key);
+    return null;
+  }
+
+  void set onTimeout(void callback()) {
+    _session.onTimeout = callback;
+  }
+
 }
