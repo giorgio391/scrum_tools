@@ -387,7 +387,7 @@ class WorkItemsCommands extends UtilOptionCommand {
       workItem.milestones.forEach((RDMilestone milestone) {
         _p.write(r'·');
         _p.cyan().inverted(
-            '${milestone.name} ${_formatShortDate(milestone.targetDate)}');
+            '${milestone.name} ${formatDateYMD(milestone.targetDate)}');
       });
     }
     _p.writeln();
@@ -764,24 +764,6 @@ String _createMilestoneName(RDTag tag, String appVersion) {
   sb.write(r'-[V:');
   sb.write(appVersion);
   sb.write(r']');
-  return sb.toString();
-}
-
-String _formatShortDate(DateTime date) {
-  StringBuffer sb = new StringBuffer();
-  sb.write(date.year - 2000);
-  sb.write(r'-');
-  if (date.month < 10) sb.write(r'0');
-  sb.write(date.month);
-  sb.write(r'-');
-  if (date.day < 10) sb.write(r'0');
-  sb.write(date.day);
-  sb.write(r'_');
-  if (date.hour < 10) sb.write(r'0');
-  sb.write(date.hour);
-  sb.write(r':');
-  if (date.minute < 10) sb.write(r'0');
-  sb.write(date.minute);
   return sb.toString();
 }
 

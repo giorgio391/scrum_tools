@@ -5,10 +5,9 @@ import 'package:start/start.dart';
 import 'package:logging/logging.dart';
 import 'package:scrum_tools/src/utils/helpers.dart';
 
-typedef void POSTHandler(Completer<Map<String, dynamic>> completer,
-    Map<String, dynamic> content);
+typedef void POSTHandler(RESTContext context);
 
-typedef void GETHandler(Completer completer, Map<String, String> params);
+typedef void GETHandler(RESTContext context);
 
 Logger _log = new Logger(r'rest_server');
 
@@ -20,7 +19,8 @@ class RestServer {
   Map<String, POSTHandler> _postHandlers;
   Map<String, GETHandler> _getHandlers;
 
-  RestServer({String pathRoot: r'/rest', Map<String, POSTHandler> postHandlers: const {
+  RestServer(
+      {String pathRoot: r'/rest', Map<String, POSTHandler> postHandlers: const {
       }, Map<String, GETHandler> getHandlers: const {} }) {
     _pathRoot = pathRoot;
     _postHandlers = postHandlers;
@@ -42,15 +42,13 @@ class RestServer {
           data.write(content);
         }, onDone: () {
           Map<String, dynamic> requestMap = JSON.decode(data.toString());
-          Completer<Map<String, dynamic>> completer = new Completer
-          <Map<String, dynamic>>();
-          completer.future.then((Map<String, dynamic> responseMap) {
-            String responseString = JSON.encode(responseMap);
+          RESTContext restContext = new RESTContext(httpRequest, requestMap);
+          restContext._completer.future.then((String responseString) {
             response.send(responseString);
           }).catchError((error) {
             _error(error, response);
           });
-          handler(completer, requestMap);
+          handler(restContext);
         });
       } else {
         _error(r"No POST handler found.", response);
@@ -63,62 +61,19 @@ class RestServer {
       response.header(r'Content-Type', r'application/json; charset=UTF-8');
 
       if (handler != null) {
-        Completer completer = new Completer();
-        completer.future.then((_) {
-          String responseString = () {
-            if (_ == null) return r'';
-            if (_ is String) return (_ as String);
-            try {
-              if (_ is Mappable) {
-                return JSON.encode((_ as Mappable).toMap());
-              }
-              if (_ is Map<String, dynamic>) {
-                return JSON.encode(_ as Map<String, dynamic>);
-              }
-              if (_ is List) {
-                List list = _ as List;
-                if (list.isEmpty) return '[]';
-                if (list[1] is String) {
-                  return JSON.encode(list);
-                }
-                if (list[1] is Mappable) {
-                  List<Map<String, dynamic>> newList = [];
-                  list.forEach((Mappable mappable) {
-                    newList.add(mappable.toMap());
-                  });
-                  return JSON.encode(newList);
-                }
-              }
-            } catch (error) {
-              _log.severe(error);
-            }
-            return null;
-          }();
-          if (responseString != null) {
-            response.send(responseString);
-          } else {
-            _error(r"Object enconding not supported.", response);
-          }
+        RESTContext restContext = new RESTContext(request.input);
+        restContext._completer.future.then((String responseString) {
+          response.send(responseString);
         }).catchError((error) {
           _error(error, response);
         });
-        handler(completer, request.uri.queryParameters);
+        handler(restContext);
       } else {
         _error(r"No GET handler found.", response);
       }
     });
 
     _log.info('REST server ready at [${_pathRoot}].');
-  }
-
-  String _requestedKey(Request request) {
-    String requestedUri = request.input.requestedUri.toString();
-    String uriPart = requestedUri.substring(
-        requestedUri.indexOf('${_pathRoot}/') + _pathRoot.length);
-    if (uriPart.indexOf(r'?') > -1) {
-      uriPart = uriPart.substring(0, uriPart.indexOf(r'?'));
-    }
-    return uriPart;
   }
 
   void _error(dynamic error, Response response) {
@@ -130,5 +85,78 @@ class RestServer {
     };
     String responseString = JSON.encode(map);
     response.send(responseString);
+  }
+
+  String _requestedKey(Request request) {
+    String requestedUri = request.input.requestedUri.toString();
+    String uriPart = requestedUri.substring(
+        requestedUri.indexOf('${_pathRoot}/') + _pathRoot.length);
+    if (uriPart.indexOf(r'?') > -1) {
+      uriPart = uriPart.substring(0, uriPart.indexOf(r'?'));
+    }
+    return uriPart;
+  }
+}
+
+class RESTContext {
+
+  Completer<String> _completer = new Completer<String>();
+
+  Map<String, dynamic> _payload;
+
+  Map<String, dynamic> get payload => _payload;
+
+  HttpRequest _request;
+
+  RESTContext(this._request, [this._payload]);
+
+  Map<String, String> get parameters => _request.uri.queryParameters;
+
+  Map<String, List<String>> get parametersAll =>
+      _request.uri.queryParametersAll;
+
+  void respondOK() {
+    respondObject(OK_RESPONSE);
+  }
+
+  void respondError(dynamic error) {
+    _completer.completeError(error);
+  }
+
+  void respondString(String string) {
+    _completer.complete(string == null ? r'' : string);
+  }
+
+  void respondObject(dynamic object) {
+    String responseString = () {
+      if (object == null) return r'';
+      if (object is String) return (object as String);
+      try {
+        if (object is Mappable) {
+          return JSON.encode((object as Mappable).toMap());
+        }
+        if (object is Map<String, dynamic>) {
+          return JSON.encode(object as Map<String, dynamic>);
+        }
+        if (object is List) {
+          List list = object as List;
+          if (list.isEmpty) return '[]';
+          if (list[1] is String) {
+            return JSON.encode(list);
+          }
+          if (list[1] is Mappable) {
+            List<Map<String, dynamic>> newList = [];
+            list.forEach((Mappable mappable) {
+              newList.add(mappable.toMap());
+            });
+            return JSON.encode(newList);
+          }
+        }
+      } catch (error) {
+        _log.severe(error);
+      }
+      return null;
+    }();
+    respondString(responseString);
   }
 }
