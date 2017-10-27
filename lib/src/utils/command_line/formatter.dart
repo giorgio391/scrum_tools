@@ -108,7 +108,9 @@ String formatSimpleWIHtmlList(Iterable<RDWorkItem> workItems) {
       sb.write(workItem.formattedID);
       sb.writeln(r'</a>');
       sb.write(r' ');
+      if (workItem.blocked) sb.write(r'<b><font color="red">');
       sb.write(workItem.name);
+      if (workItem.blocked) sb.write(r'</font></b>');
       sb.writeln(r'</li>');
     });
     sb.writeln(r'</ul>');
