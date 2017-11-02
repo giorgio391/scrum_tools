@@ -39,7 +39,7 @@ spread_daily:
       user: team-green@servicios.emergya.com
       pass: mailer-1
       secured: true
-      recipients: jmurcia@emergya.com
+      recipients: gordon-manager@emergya.com
       from_name: PSNow dev team
   conf-team:
     ~extends: spread_daily/conf-3
@@ -52,12 +52,12 @@ spread_daily:
       mode: html
       mail:
         ~extends: spread_daily/conf-3/mail
-        recipients: jmurcia@emergya.com, david.pinczes@hpe.com, iulia-lacramioara.bogatoiu@hpe.com
+        recipients: gordon-manager@emergya.com, david.pinczes@hpe.com, iulia-lacramioara.bogatoiu@hpe.com
   conf-member:
     ~extends: spread_daily/conf-3
     mode: html-member
     #members: o
     mail:
       ~extends: spread_daily/conf-3/mail
-      recipients: jmurcia@emergya.com
-      #cc_recipients: jmurcia@emergya.com
+      recipients: gordon-manager@emergya.com
+      #cc_recipients: gordon-manager@emergya.com

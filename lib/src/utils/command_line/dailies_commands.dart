@@ -415,7 +415,7 @@ class SpreadDaily extends UtilOptionCommand {
                 Message message = new Message(tmpl.subject(teamMemberCode),
                     html)
                   ..recipients.add('${teamMemberCode}@emergya.com')
-                  ..recipients.add('jmurcia@emergya.com')
+                  ..recipients.add('gordon-manager@emergya.com')
                   ;
                 messages.add(message);
                 //print(html);
