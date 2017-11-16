@@ -13,7 +13,9 @@ Map basicWi = {
   'ObjectID': 1,
   'CreationDate': now,
   'LastUpdateDate': now,
-  'Tags': {'_tagsNameArray': []}
+  'Tags': {'_tagsNameArray': []},
+  r'RevisionHistory': {r'_ref': r'https://rally1.rallydev.com/slm/webservice/v2.0/revisionhistory/123456789' },
+  r'Milestones': {r'_tagsNameArray': []}
 };
 
 RDDefect defect([Map<String, dynamic> values]) {
@@ -33,7 +35,8 @@ RDHierarchicalRequirement us([Map<String, dynamic> values]) {
   Map basicUsMap = new Map.from(basicWi)
     ..addAll({
       'ObjectID': 100,
-      'FormattedID': 'US00001'
+      'FormattedID': 'US00001',
+      r'Predecessors': {r'Count' : 0 }
     });
 
   if (values != null)
