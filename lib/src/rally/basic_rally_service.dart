@@ -847,6 +847,10 @@ class PrioritizationComparator {
       if (iteration1 > _currentIteration && iteration2 <= _currentIteration)
         return 1;
     }
+      
+    if (iteration1 != null && iteration2 == null) return -1;
+    if (iteration1 == null && iteration2 != null) return 1;
+    if (iteration1 != iteration2) return iteration1.compareTo(iteration2);
 
     int priorityComparison = _compareByPriorityRisk(wi1, wi2);
 
@@ -855,10 +859,6 @@ class PrioritizationComparator {
     RDSeverity severity1 = inferSeverity(wi1);
     RDSeverity severity2 = inferSeverity(wi2);
     if (severity1 != severity2) return severity1.compareTo(severity2);
-
-    if (iteration1 != null && iteration2 == null) return -1;
-    if (iteration1 == null && iteration2 != null) return 1;
-    if (iteration1 != iteration2) return iteration1.compareTo(iteration2);
 
     String rank1 = wi1.rank;
     String rank2 = wi2.rank;
